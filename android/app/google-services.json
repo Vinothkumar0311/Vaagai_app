@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "974007969277",
+    "project_id": "vaagaiapp-3c760",
+    "storage_bucket": "vaagaiapp-3c760.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974007969277:android:d65f0332f3fb70231d6594",
+        "android_client_info": {
+          "package_name": "com.example.vaagai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARrYaygcKMEQoCpMQfvTNbZwjhlXxxrms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974007969277:android:4cc5ce7f0059934f1d6594",
+        "android_client_info": {
+          "package_name": "com.example.vaagai1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARrYaygcKMEQoCpMQfvTNbZwjhlXxxrms"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
