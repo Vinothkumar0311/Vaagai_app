@@ -14,7 +14,7 @@ class StaffCourseDetailScreen extends StatefulWidget {
 class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
   late TextEditingController _titleController;
   late TextEditingController _descController;
-  late TextEditingController _trainerController;
+  late List<TextEditingController> _trainerControllers;
   
   // Video Section Controllers
   final TextEditingController _videoTitleController = TextEditingController();
@@ -33,7 +33,54 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
     super.initState();
     _titleController = TextEditingController(text: widget.doc.title);
     _descController = TextEditingController(text: widget.doc.objective);
-    _trainerController = TextEditingController(text: widget.doc.trainers);
+    
+    // Parse trainers string into a list of controllers using newline as separator
+    final trainersList = widget.doc.trainers.split('\n').where((s) => s.trim().isNotEmpty).toList();
+    if (trainersList.isEmpty) {
+      _trainerControllers = [TextEditingController()];
+    } else {
+      _trainerControllers = trainersList.map((t) => TextEditingController(text: t.trim())).toList();
+    }
+  }
+
+  void _addTrainerField() {
+    setState(() {
+      _trainerControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeTrainerField(int index) {
+    if (_trainerControllers.length > 1) {
+      setState(() {
+        final ctrl = _trainerControllers.removeAt(index);
+        ctrl.dispose();
+      });
+    }
+  }
+
+  Future<void> _onUpdateDetails() async {
+    final trainers = _trainerControllers
+        .map((c) => c.text.trim())
+        .where((t) => t.isNotEmpty)
+        .join('\n');
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('course_uploads')
+          .doc(widget.doc.id)
+          .update({
+        'title': _titleController.text.trim(),
+        'objective': _descController.text.trim(),
+        'trainers': trainers,
+      });
+      
+      if (mounted) {
+        setState(() => _showUpdateSection = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("விவரங்கள் புதுப்பிக்கப்பட்டன!")));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
   }
 
   Future<void> _onAddVideo() async {
@@ -73,7 +120,9 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _trainerController.dispose();
+    for (var ctrl in _trainerControllers) {
+      ctrl.dispose();
+    }
     _videoTitleController.dispose();
     _youtubeUrlController.dispose();
     super.dispose();
@@ -127,13 +176,33 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                     widget.doc.title,
                     style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: -0.5),
                   ),
-                  const SizedBox(height: 8),
-                  _buildTrainerBadge(primaryGreen),
+                  const SizedBox(height: 20),
+                  
+                  // Instructors List Section (Matching Image 2)
+                  const Text(
+                    "பயிற்றுநர் விவரம்",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  // Instructors Paragraph Style (Matching User's "Looks like paragraph" request)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4.0),
+                    child: Text(
+                      widget.doc.trainers.replaceAll('\n', ', '),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: Colors.black87,
+                        height: 1.6,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                   
                   const SizedBox(height: 24),
-                  const Text("பாடத்தின் நோக்கம் (Description)", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.black87)),
+                  const SizedBox(height: 24),
+                  const Text("பாடத்தின் நோக்கம் (வகுப்பின் நோக்கம்)", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Colors.black87)),
                   const SizedBox(height: 8),
-                  Text(widget.doc.objective, style: TextStyle(fontSize: 16, color: Colors.grey.shade700, height: 1.5)),
+                  Text(widget.doc.objective, style: TextStyle(fontSize: 16, color: Colors.grey.shade800, height: 1.6)),
 
                   const SizedBox(height: 32),
 
@@ -175,8 +244,10 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                     _UpdateCourseCard(
                       titleCtrl: _titleController,
                       descCtrl: _descController,
-                      trainerCtrl: _trainerController,
-                      onUpdate: () => setState(() => _showUpdateSection = false),
+                      trainerControllers: _trainerControllers,
+                      onAddTrainer: _addTrainerField,
+                      onRemoveTrainer: _removeTrainerField,
+                      onUpdate: _onUpdateDetails,
                     ),
                   
                   if (_showAddVideoSection)
@@ -250,20 +321,6 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
     );
   }
 
-  Widget _buildTrainerBadge(Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.person_pin_rounded, size: 14, color: color),
-          const SizedBox(width: 6),
-          Flexible(child: Text(widget.doc.trainers, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13))),
-        ],
-      ),
-    );
-  }
 
   Widget _actionButton({required String label, required IconData icon, required Color color, required VoidCallback onPressed, bool isActive = false}) {
     return InkWell(
@@ -301,10 +358,19 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
 class _UpdateCourseCard extends StatelessWidget {
   final TextEditingController titleCtrl;
   final TextEditingController descCtrl;
-  final TextEditingController trainerCtrl;
+  final List<TextEditingController> trainerControllers;
+  final VoidCallback onAddTrainer;
+  final Function(int) onRemoveTrainer;
   final VoidCallback onUpdate;
 
-  const _UpdateCourseCard({required this.titleCtrl, required this.descCtrl, required this.trainerCtrl, required this.onUpdate});
+  const _UpdateCourseCard({
+    required this.titleCtrl, 
+    required this.descCtrl, 
+    required this.trainerControllers, 
+    required this.onAddTrainer,
+    required this.onRemoveTrainer,
+    required this.onUpdate
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -324,9 +390,27 @@ class _UpdateCourseCard extends StatelessWidget {
           const SizedBox(height: 20),
           _field(titleCtrl, "Title", Icons.title),
           const SizedBox(height: 12),
-          _field(descCtrl, "Description", Icons.description, minLines: 3),
-          const SizedBox(height: 12),
-          _field(trainerCtrl, "Instructor Name", Icons.person, minLines: 1),
+          _field(descCtrl, "Description (வகுப்பின் நோக்கம்)", Icons.description, minLines: 4),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("பயிற்றுநர் விவரம் (INSTRUCTORS)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              TextButton.icon(onPressed: onAddTrainer, icon: const Icon(Icons.add, size: 16), label: const Text("Add Staff")),
+            ],
+          ),
+          ...List.generate(trainerControllers.length, (index) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Expanded(child: _field(trainerControllers[index], "Staff ${index + 1}", Icons.person)),
+                  if (trainerControllers.length > 1)
+                    IconButton(onPressed: () => onRemoveTrainer(index), icon: const Icon(Icons.remove_circle_outline, color: Colors.red)),
+                ],
+              ),
+            );
+          }),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

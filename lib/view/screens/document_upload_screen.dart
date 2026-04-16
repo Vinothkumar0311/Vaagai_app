@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -203,7 +203,9 @@ class _DocumentCard extends StatelessWidget {
                               color: Colors.white, size: 14),
                           const SizedBox(width: 8),
                           Text(
-                            doc.trainers.split(',').first.trim(),
+                            doc.trainers.split('\n').length > 1 
+                                ? "${doc.trainers.split('\n').first.split(',').first.trim()} & others"
+                                : doc.trainers.split('\n').first.split(',').first.trim(),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
@@ -344,22 +346,48 @@ class _UploadFormModalState extends State<UploadFormModal> {
   final _formKey = GlobalKey<FormState>();
   final _degreeController = TextEditingController();
   final _objectiveController = TextEditingController();
-  final _trainersController = TextEditingController();
+  final List<TextEditingController> _trainerControllers = [TextEditingController()];
 
-  File? _imageFile;
+  Uint8List? _imageBytes;
   String? _imageName;
-  File? _pdfFile;
+  Uint8List? _pdfBytes;
   String? _pdfName;
 
   bool _isUploading = false;
+
+  @override
+  void dispose() {
+    _degreeController.dispose();
+    _objectiveController.dispose();
+    for (var controller in _trainerControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _addTrainer() {
+    setState(() {
+      _trainerControllers.add(TextEditingController());
+    });
+  }
+
+  void _removeTrainer(int index) {
+    if (_trainerControllers.length > 1) {
+      setState(() {
+        final controller = _trainerControllers.removeAt(index);
+        controller.dispose();
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final xFile =
         await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (xFile != null) {
+      final bytes = await xFile.readAsBytes();
       setState(() {
-        _imageFile = File(xFile.path);
+        _imageBytes = bytes;
         _imageName = xFile.name;
       });
     }
@@ -367,10 +395,13 @@ class _UploadFormModalState extends State<UploadFormModal> {
 
   Future<void> _pickPdf() async {
     final result = await FilePicker.pickFiles(
-        type: FileType.custom, allowedExtensions: ['pdf']);
-    if (result != null && result.files.single.path != null) {
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
+    if (result != null && result.files.single.bytes != null) {
       setState(() {
-        _pdfFile = File(result.files.single.path!);
+        _pdfBytes = result.files.single.bytes;
         _pdfName = result.files.single.name;
       });
     }
@@ -378,7 +409,7 @@ class _UploadFormModalState extends State<UploadFormModal> {
 
   Future<void> _upload() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null && _pdfFile == null) {
+    if (_imageBytes == null && _pdfBytes == null) {
       _showSnack("Please select Image or PDF", Colors.red);
       return;
     }
@@ -391,26 +422,31 @@ class _UploadFormModalState extends State<UploadFormModal> {
       String? imageUrl;
       String? pdfUrl;
 
-      if (_imageFile != null) {
+      if (_imageBytes != null) {
         imageUrl = await DriveUploadService.uploadFile(
-          file: _imageFile!,
+          bytes: _imageBytes!,
           fileName: '${DateTime.now().millisecondsSinceEpoch}_$_imageName',
           mimeType: DriveUploadService.mimeTypeFrom(_imageName!),
         );
       }
 
-      if (_pdfFile != null) {
+      if (_pdfBytes != null) {
         pdfUrl = await DriveUploadService.uploadFile(
-          file: _pdfFile!,
+          bytes: _pdfBytes!,
           fileName: '${DateTime.now().millisecondsSinceEpoch}_$_pdfName',
           mimeType: DriveUploadService.mimeTypeFrom(_pdfName!),
         );
       }
 
+      final trainers = _trainerControllers
+          .map((c) => c.text.trim())
+          .where((t) => t.isNotEmpty)
+          .join('\n');
+
       await FirebaseFirestore.instance.collection('course_uploads').add({
         'title': _degreeController.text.trim(),
         'objective': _objectiveController.text.trim(),
-        'trainers': _trainersController.text.trim(),
+        'trainers': trainers,
         'imageUrl': imageUrl,
         'pdfUrl': pdfUrl,
         'imageName': _imageName,
@@ -423,6 +459,7 @@ class _UploadFormModalState extends State<UploadFormModal> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploading = false);
+      _showSnack('Upload failed: $e', Colors.red);
     }
   }
 
@@ -466,13 +503,55 @@ class _UploadFormModalState extends State<UploadFormModal> {
               _styledInput(_degreeController, "Course Title",
                   Icons.auto_stories_rounded),
               const SizedBox(height: 16),
-              _styledInput(_objectiveController, "Course Objective",
+              _styledInput(_objectiveController, "Course Objective (வகுப்பின் நோக்கம்)",
                   Icons.lightbulb_outline_rounded,
-                  maxLines: 2),
-              const SizedBox(height: 16),
-              _styledInput(_trainersController, "Organization / Instructors",
-                  Icons.work_history_rounded),
+                  maxLines: 4),
               const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "பயிற்றுநர் விவரம் (Instructors)",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B5E20),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _addTrainer,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text("Add Staff"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF1B5E20),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ...List.generate(_trainerControllers.length, (index) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _styledInput(
+                          _trainerControllers[index],
+                          "Instructor Name & Details ${index + 1}",
+                          Icons.person_outline_rounded,
+                        ),
+                      ),
+                      if (_trainerControllers.length > 1)
+                        IconButton(
+                          onPressed: () => _removeTrainer(index),
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   _fileBox("Thumbnail", _imageName, Colors.blue, _pickImage),

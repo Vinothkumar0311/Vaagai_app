@@ -148,17 +148,14 @@ class CourseContentDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: primaryGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.person_pin_rounded, size: 16, color: primaryGreen),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(doc.trainers, style: const TextStyle(color: primaryGreen, fontWeight: FontWeight.bold, fontSize: 14))),
-                      ],
-                    ),
+                  const Text(
+                    "பயிற்றுநர் விவரம்",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    doc.trainers.replaceAll('\n', ', '),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade700, height: 1.6, fontWeight: FontWeight.w500),
                   ),
                   
                   const SizedBox(height: 32),

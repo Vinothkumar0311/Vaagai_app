@@ -40,6 +40,19 @@ class MyApp extends StatelessWidget {
           seedColor: const Color(0xFF1B5E20),
         ),
       ),
+      builder: (context, child) {
+        return Container(
+          color: Colors.grey.shade900,
+          child: Center(
+            child: ClipRect(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 450),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

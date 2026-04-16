@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 /// Google Drive upload via Google Apps Script proxy.
@@ -13,11 +13,10 @@ class DriveUploadService {
   static const int _chunkSize = 1200000;
 
   static Future<String> uploadFile({
-    required File file,
+    required Uint8List bytes,
     required String fileName,
     required String mimeType,
   }) async {
-    final bytes = await file.readAsBytes();
     final base64Str = base64Encode(bytes);
 
     _log('File: $fileName | ${bytes.length} bytes | base64: ${base64Str.length} chars');
@@ -91,36 +90,49 @@ class DriveUploadService {
   // ── HTTP helper ────────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> _post(Map<String, dynamic> payload) async {
-    final client = http.Client();
     try {
-      final request = http.Request('POST', Uri.parse(_scriptUrl))
-        ..followRedirects = false
-        ..body = json.encode(payload);
+      // Use simple http.post which auto-follows redirects on all platforms.
+      // On web, the browser controls redirects so followRedirects=false breaks.
+      // Use text/plain content-type to avoid CORS preflight (simple request),
+      // since Google Apps Script does not send CORS headers for application/json POSTs.
+      var response = await http.post(
+        Uri.parse(_scriptUrl),
+        headers: {'Content-Type': 'text/plain'},
+        body: json.encode(payload),
+      );
 
-      final streamed = await client.send(request);
-      final initial = await http.Response.fromStream(streamed);
+      _log('Response status: ${response.statusCode}');
 
-      String responseBody;
-
-      if (initial.statusCode == 302) {
-        final location = initial.headers['location'];
-        if (location == null) throw Exception('Redirect without location header');
-        final redirected = await client.get(Uri.parse(location));
-        responseBody = redirected.body;
-      } else if (initial.statusCode == 200) {
-        responseBody = initial.body;
-      } else {
-        throw Exception(
-            'HTTP ${initial.statusCode}: ${initial.body.substring(0, min(300, initial.body.length))}');
+      // Manually follow redirect if the HTTP client didn't do it automatically
+      if (response.statusCode == 302 || response.statusCode == 303) {
+        String? redirectUrl = response.headers['location'];
+        if (redirectUrl == null || redirectUrl.isEmpty) {
+          final match = RegExp(r'HREF="(.*?)"', caseSensitive: false).firstMatch(response.body);
+          if (match != null) {
+            redirectUrl = match.group(1);
+          }
+        }
+        
+        if (redirectUrl != null && redirectUrl.isNotEmpty) {
+          _log('Following redirect...');
+          response = await http.get(Uri.parse(redirectUrl));
+          _log('Redirect response status: ${response.statusCode}');
+        }
       }
 
-      final data = json.decode(responseBody) as Map<String, dynamic>;
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(
+            'HTTP ${response.statusCode}: ${response.body.substring(0, min(300, response.body.length))}');
+      }
+
+      final data = json.decode(response.body) as Map<String, dynamic>;
       if (data['status'] != 'success') {
         throw Exception('Script error: ${data['message']}');
       }
       return data;
-    } finally {
-      client.close();
+    } catch (e) {
+      _log('Error: $e');
+      rethrow;
     }
   }
 

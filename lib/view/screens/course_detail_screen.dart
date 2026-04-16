@@ -1,4 +1,4 @@
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -280,9 +280,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
   }
 
   Future<void> _pickAndUploadFile() async {
-    final result = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'doc', 'docx']);
-    if (result != null && result.files.single.path != null) {
-      final file = File(result.files.single.path!);
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom, 
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+      withData: true,
+    );
+    if (result != null && result.files.single.bytes != null) {
+      final bytes = result.files.single.bytes!;
       final fileName = result.files.single.name;
 
       showDialog(
@@ -293,7 +297,7 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
 
       try {
         final driveUrl = await DriveUploadService.uploadFile(
-          file: file,
+          bytes: bytes,
           fileName: fileName,
           mimeType: DriveUploadService.mimeTypeFrom(fileName),
         );
