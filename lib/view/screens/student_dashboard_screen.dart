@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
@@ -10,6 +9,7 @@ import '../../core/models/course_access_model.dart';
 import '../widgets/course_widgets.dart';
 import 'course_content_detail_screen.dart';
 import 'payment_registration_screen.dart';
+import 'pdf_viewer_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -339,24 +339,37 @@ class _CourseCard extends StatelessWidget {
                       else if (isLocked)
                         StatusChip.locked(),
                       
-                      if (doc.pdfUrl != null && doc.pdfUrl!.isNotEmpty)
-                        TextButton.icon(
-                          onPressed: () => _openUrl(doc.pdfUrl!),
-                          icon: const Icon(Icons.picture_as_pdf,
-                              size: 16, color: Colors.red),
-                          label: const Text(
-                            'SYLLABUS',
-                            style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red),
-                          ),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
+                      // if (doc.pdfUrl != null && doc.pdfUrl!.isNotEmpty)
+                        // TextButton.icon(
+                        //   onPressed: () {
+                        //     final pdfViewUrl = DriveUtils.getDirectViewUrl(doc.pdfUrl);
+                        //     if (pdfViewUrl != null) {
+                        //       Navigator.push(
+                        //         context,
+                        //         MaterialPageRoute(
+                        //           builder: (context) => PdfViewerScreen(
+                        //             pdfUrl: pdfViewUrl,
+                        //             title: "${doc.title} - Syllabus",
+                        //           ),
+                        //         ),
+                        //       );
+                        //     }
+                        //   },
+                        //   icon: const Icon(Icons.picture_as_pdf,
+                        //       size: 16, color: Colors.red),
+                        //   label: const Text(
+                        //     'SYLLABUS',
+                        //     style: TextStyle(
+                        //         fontSize: 10,
+                        //         fontWeight: FontWeight.bold,
+                        //         color: Colors.red),
+                        //   ),
+                        //   style: TextButton.styleFrom(
+                        //     padding: const EdgeInsets.symmetric(horizontal: 0),
+                        //     minimumSize: Size.zero,
+                        //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        //   ),
+                        // ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -432,10 +445,4 @@ class _CourseCard extends StatelessWidget {
     );
   }
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
@@ -9,6 +8,8 @@ import '../../core/models/uploaded_document.dart';
 import '../../core/models/course_video_model.dart';
 import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
+import 'pdf_viewer_screen.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 /// Screen shown when a student taps on a locked course.
 /// Allows them to view the course details and submit a payment registration.
@@ -22,8 +23,7 @@ class PaymentRegistrationScreen extends StatefulWidget {
       _PaymentRegistrationScreenState();
 }
 
-class _PaymentRegistrationScreenState
-    extends State<PaymentRegistrationScreen> {
+class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
   static const Color _primary = Color(0xFF1B5E20);
   final _formKey = GlobalKey<FormState>();
   final _notesCtrl = TextEditingController();
@@ -44,8 +44,7 @@ class _PaymentRegistrationScreenState
 
     setState(() => _isSubmitting = true);
 
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
+    final provider = Provider.of<CourseAccessProvider>(context, listen: false);
 
     final error = await provider.registerCourseAccess(
       studentId: user.uid,
@@ -97,9 +96,7 @@ class _PaymentRegistrationScreenState
         title: const Text(
           'பாட பதிவு',
           style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: _primary,
-              fontSize: 18),
+              fontWeight: FontWeight.bold, color: _primary, fontSize: 18),
         ),
         backgroundColor: Colors.white,
         foregroundColor: _primary,
@@ -266,7 +263,8 @@ class _PaymentRegistrationScreenState
           ),
           const SizedBox(height: 16),
           _instructionRow('1', 'UPI / GPay மூலம் கட்டணம் செலுத்தவும்'),
-          _instructionRow('2', 'கட்டண ஸ்க்ரீன்ஷாட்டை எடுத்து வைத்துக் கொள்ளவும்'),
+          _instructionRow(
+              '2', 'கட்டண ஸ்க்ரீன்ஷாட்டை எடுத்து வைத்துக் கொள்ளவும்'),
           _instructionRow('3', 'கீழே உள்ள "பதிவு கோரிக்கை" அனுப்பவும்'),
           _instructionRow('4', 'நிர்வாகி ஒப்புதலுக்கு பிறகு பாடம் திறக்கும்'),
           const SizedBox(height: 12),
@@ -401,7 +399,27 @@ class _CourseInfoCard extends StatelessWidget {
                       StatusChip.locked(),
                       if (doc.pdfUrl != null && doc.pdfUrl!.isNotEmpty)
                         TextButton.icon(
-                          onPressed: () => _openUrl(doc.pdfUrl!),
+                          onPressed: () {
+                            final pdfViewUrl =
+                                DriveUtils.getDirectViewUrl(doc.pdfUrl);
+                            if (pdfViewUrl != null) {
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => PdfViewerScreen(
+                              //       pdfUrl: pdfViewUrl,
+                              //       title: "${doc.title} - Syllabus",
+                              //     ),
+                              //   ),
+                              // );
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => PdfViewerScreen(
+                                          pdfUrl: pdfViewUrl,
+                                          title: doc.pdfName ?? doc.title)));
+                            }
+                          },
                           icon: const Icon(Icons.picture_as_pdf,
                               size: 18, color: Colors.red),
                           label: const Text(
@@ -424,13 +442,6 @@ class _CourseInfoCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }
 
@@ -456,26 +467,29 @@ class _DemoVideosSection extends StatelessWidget {
               fontSize: 16,
               color: Color(0xFF1B5E20)),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         StreamBuilder<QuerySnapshot>(
           stream: provider.streamDemoVideos(courseDocId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const SizedBox(
-                height: 100,
-                child: Center(child: CircularProgressIndicator()),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Text('மாதிரி வீடியோக்கள் எதுவும் இல்லை',
-                    style: TextStyle(color: Colors.grey, fontSize: 13)),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.grey),
+                    SizedBox(width: 12),
+                    Text('மாதிரி வீடியோக்கள் எதுவும் இல்லை',
+                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
               );
             }
 
@@ -483,41 +497,123 @@ class _DemoVideosSection extends StatelessWidget {
                 .map((d) => CourseVideoModel.fromFirestore(d))
                 .toList();
 
-            return SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: videos.length,
-                itemBuilder: (context, i) {
-                  final video = videos[i];
-                  return Container(
-                    width: 200,
-                    margin: const EdgeInsets.only(right: 12),
-                    child: VideoThumbnailCard(
-                      video: video,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => YouTubePlayerScreen(videoUrl: video.youtubeUrl, title: video.title),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: videos.length,
+              itemBuilder: (context, i) {
+                final video = videos[i];
+                
+                // Extract Thumbnail
+                String? thumbUrl;
+                final uri = Uri.tryParse(video.youtubeUrl);
+                if (uri != null) {
+                  String? videoId = YoutubePlayerController.convertUrlToId(video.youtubeUrl);
+                  if (videoId != null) {
+                    thumbUrl = 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
+                  }
+                }
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey.shade100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      // Thumbnail
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          width: 100,
+                          height: 60,
+                          color: Colors.grey.shade100,
+                          child: thumbUrl != null
+                              ? Image.network(
+                                  thumbUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                      Icons.play_circle_fill,
+                                      color: Colors.grey),
+                                )
+                              : const Icon(Icons.play_circle_fill,
+                                  color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Title and demo tag
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              video.title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.black87),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                  color: Colors.blue.shade50,
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: Text("DEMO",
+                                  style: TextStyle(
+                                      color: Colors.blue.shade700,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // WATCH Button
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => YouTubePlayerScreen(
+                                  videoUrl: video.youtubeUrl, title: video.title),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1B5E20),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text("WATCH",
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             );
           },
         ),
       ],
     );
-  }
-
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }

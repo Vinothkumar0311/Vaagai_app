@@ -7,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/course_provider.dart';
 import '../../core/models/app_models.dart';
 import '../../services/drive_upload_service.dart';
+import './pdf_viewer_screen.dart';
 
 class CourseDetailScreen extends StatefulWidget {
   final CourseModel course;
@@ -123,7 +124,17 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
           subtitle: material.fileType.toUpperCase(),
           icon: Icons.picture_as_pdf_rounded,
           color: Colors.blue,
-          onTap: () => _launchURL(material.fileUrl),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PdfViewerScreen(
+                  pdfUrl: material.fileUrl,
+                  title: material.fileName,
+                ),
+              ),
+            );
+          },
           cta: "OPEN FILE",
         );
       },

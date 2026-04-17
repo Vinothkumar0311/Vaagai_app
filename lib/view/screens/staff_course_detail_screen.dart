@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../core/models/uploaded_document.dart';
 import '../../core/models/course_video_model.dart';
@@ -9,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
 import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
+import 'pdf_viewer_screen.dart';
 
 
 class StaffCourseDetailScreen extends StatefulWidget {
@@ -215,7 +215,17 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                       ),
                       if (pdfDirectUrl != null && pdfDirectUrl.isNotEmpty)
                         TextButton.icon(
-                          onPressed: () => _openUrl(pdfDirectUrl),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PdfViewerScreen(
+                                  pdfUrl: pdfDirectUrl,
+                                  title: "${widget.doc.title} - Syllabus",
+                                ),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
                           label: const Text("SYLLABUS", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                         ),
@@ -378,12 +388,6 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
     );
   }
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 
 
   Widget _actionButton({required String label, required IconData icon, required Color color, required VoidCallback onPressed, bool isActive = false}) {

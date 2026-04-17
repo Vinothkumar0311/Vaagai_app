@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
 import '../../core/models/course_video_model.dart';
 import '../widgets/course_widgets.dart';
+import 'youtube_player_screen.dart';
 
 /// Admin screen to view and approve/reject staff-uploaded course videos.
 class AdminVideoApprovalScreen extends StatelessWidget {
@@ -186,7 +186,15 @@ class _AdminVideoCard extends StatelessWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => _openUrl(video.youtubeUrl),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => YouTubePlayerScreen(
+                                videoUrl: video.youtubeUrl, title: video.title),
+                          ),
+                        );
+                      },
                       child: Center(
                         child: Container(
                           padding: const EdgeInsets.all(12),
@@ -450,10 +458,4 @@ class _AdminVideoCard extends StatelessWidget {
   String _formatDate(DateTime dt) =>
       '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
 }
