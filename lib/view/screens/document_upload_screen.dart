@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/drive_utils.dart';
 import '../../services/drive_upload_service.dart';
 import 'staff_course_detail_screen.dart';
 import '../../core/models/uploaded_document.dart';
@@ -122,14 +123,7 @@ class _DocumentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Generate Direct Drive Link for Image
-    String? displayUrl = doc.imageUrl;
-    if (displayUrl != null && displayUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(displayUrl);
-      if (match != null) {
-        displayUrl =
-            'https://drive.google.com/uc?export=view&id=${match.group(1)}';
-      }
-    }
+    String? displayUrl = DriveUtils.getDirectViewUrl(doc.imageUrl);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -161,6 +155,10 @@ class _DocumentCard extends StatelessWidget {
                       ? Image.network(
                           displayUrl,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20)));
+                          },
                           errorBuilder: (_, __, ___) => const Center(
                               child: Icon(Icons.image,
                                   size: 50, color: Colors.grey)),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/models/uploaded_document.dart';
+import '../../core/utils/drive_utils.dart';
 import 'pdf_viewer_screen.dart';
-
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'youtube_player_screen.dart';
 
 class CourseContentDetailScreen extends StatelessWidget {
@@ -95,21 +96,8 @@ class CourseContentDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF1B5E20);
     
-    String? displayUrl = doc.imageUrl;
-    if (displayUrl != null && displayUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(displayUrl);
-      if (match != null) {
-        displayUrl = 'https://drive.google.com/uc?export=view&id=${match.group(1)}';
-      }
-    }
-
-    String? pdfDirectUrl = doc.pdfUrl;
-    if (pdfDirectUrl != null && pdfDirectUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(pdfDirectUrl);
-      if (match != null) {
-        pdfDirectUrl = 'https://drive.google.com/uc?export=download&id=${match.group(1)}';
-      }
-    }
+    String? displayUrl = DriveUtils.getDirectViewUrl(doc.imageUrl);
+    String? pdfDirectUrl = DriveUtils.getDirectDownloadUrl(doc.pdfUrl);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -171,10 +159,9 @@ class CourseContentDetailScreen extends StatelessWidget {
                   
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('course_uploads')
-                        .doc(doc.id)
-                        .collection('videos')
-                        .orderBy('createdAt', descending: false)
+                        .collection('course_videos')
+                        .where('courseDocId', isEqualTo: doc.id)
+                        .where('status', isEqualTo: 'approved')
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
@@ -183,12 +170,15 @@ class CourseContentDetailScreen extends StatelessWidget {
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return Container(
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(16)),
                           child: const Row(
                             children: [
                               Icon(Icons.info_outline, color: Colors.grey),
                               SizedBox(width: 12),
-                              Text("வீடியோக்கள் இன்னும் சேர்க்கப்படவில்லை", style: TextStyle(color: Colors.grey)),
+                              Text("வீடியோக்கள் இன்னும் சேர்க்கப்படவில்லை",
+                                  style: TextStyle(color: Colors.grey)),
                             ],
                           ),
                         );
@@ -199,43 +189,89 @@ class CourseContentDetailScreen extends StatelessWidget {
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
-                          final video = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                          final String title = video['title'] ?? 'Chapter ${index + 1}';
-                          final bool isDemo = video['isDemo'] ?? false;
-                          final String url = video['url'] ?? '';
+                          final data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                          final String title = data['title'] ?? 'Chapter ${index + 1}';
+                          final bool isDemo = data['isDemo'] ?? false;
+                          final String url = data['youtubeUrl'] ?? '';
+                          
+                          // Extract Thumbnail
+                          String? thumbUrl;
+                          final uri = Uri.tryParse(url);
+                          if (uri != null) {
+                            String? videoId = YoutubePlayerController.convertUrlToId(url);
+                            if (videoId != null) {
+                              thumbUrl = 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
+                            }
+                          }
 
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Colors.grey.shade100),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+                              ],
                             ),
-                            child: ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(color: (isDemo ? Colors.blue : Colors.orange).withOpacity(0.1), shape: BoxShape.circle),
-                                child: Icon(isDemo ? Icons.play_arrow_rounded : Icons.lock_rounded, color: isDemo ? Colors.blue : Colors.orange),
-                              ),
-                              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              subtitle: Text(isDemo ? "Free Preview" : "Premium Content", style: TextStyle(fontSize: 11, color: isDemo ? Colors.blue : Colors.orange, fontWeight: FontWeight.bold)),
-                              trailing: ElevatedButton(
-                                onPressed: () => _handleVideoTap(context, title, url, isDemo),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: isDemo ? Colors.blue : Colors.orange,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            child: Row(
+                              children: [
+                                // Thumbnail
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    width: 100,
+                                    height: 60,
+                                    color: Colors.grey.shade100,
+                                    child: thumbUrl != null 
+                                      ? Image.network(thumbUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => const Icon(Icons.play_circle_fill, color: Colors.grey))
+                                      : const Icon(Icons.play_circle_fill, color: Colors.grey),
+                                  ),
                                 ),
-                                child: const Text("WATCH", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                              ),
+                                const SizedBox(width: 16),
+                                // Title and demo tag
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (isDemo)
+                                        Container(
+                                          margin: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(4)),
+                                          child: Text("DEMO", style: TextStyle(color: Colors.blue.shade700, fontSize: 9, fontWeight: FontWeight.bold)),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                // WATCH Button
+                                ElevatedButton(
+                                  onPressed: () => _handleVideoTap(context, title, url, isDemo),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF1B5E20),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  child: const Text("WATCH", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
                             ),
                           );
                         },
                       );
                     },
                   ),
+
 
                   const SizedBox(height: 40),
 

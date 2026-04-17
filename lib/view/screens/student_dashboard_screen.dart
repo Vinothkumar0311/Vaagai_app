@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/course_access_provider.dart';
 import '../../core/models/uploaded_document.dart';
+import '../../core/models/course_access_model.dart';
+import '../widgets/course_widgets.dart';
 import 'course_content_detail_screen.dart';
+import 'payment_registration_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -14,6 +20,20 @@ class StudentDashboardScreen extends StatefulWidget {
 
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   final Color primaryGreen = const Color(0xFF1B5E20);
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fetch this student's access records immediately
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user =
+          Provider.of<AuthProvider>(context, listen: false).userModel;
+      if (user != null) {
+        Provider.of<CourseAccessProvider>(context, listen: false)
+            .fetchMyAccessRecords(user.uid);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,13 +124,28 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       .map((d) => UploadedDocument.fromFirestore(d))
                       .toList();
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      return _CourseCard(
-                          doc: docs[index], primaryGreen: primaryGreen);
+                  return Consumer<CourseAccessProvider>(
+                    builder: (context, accessProvider, _) {
+                      final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: docs.length,
+                        itemBuilder: (context, index) {
+                          final doc = docs[index];
+                          final accessRecord = user != null
+                              ? accessProvider.accessRecordFor(doc.id)
+                              : null;
+                          final hasAccess = user != null &&
+                              accessProvider.isCourseAccessible(user.uid, doc.id);
+                          return _CourseCard(
+                            doc: doc,
+                            primaryGreen: primaryGreen,
+                            hasAccess: hasAccess,
+                            accessRecord: accessRecord,
+                          );
+                        },
+                      );
                     },
                   );
                 },
@@ -179,19 +214,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 class _CourseCard extends StatelessWidget {
   final UploadedDocument doc;
   final Color primaryGreen;
-  const _CourseCard({required this.doc, required this.primaryGreen});
+  final bool hasAccess;
+  final CourseAccessModel? accessRecord;
+
+  const _CourseCard({
+    required this.doc,
+    required this.primaryGreen,
+    this.hasAccess = false,
+    this.accessRecord,
+  });
 
   @override
   Widget build(BuildContext context) {
     // Generate Direct Drive Link for Image Preview
-    String? displayUrl = doc.imageUrl;
-    if (displayUrl != null && displayUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(displayUrl);
-      if (match != null) {
-        displayUrl =
-            'https://drive.google.com/uc?export=view&id=${match.group(1)}';
-      }
-    }
+    // Generate Direct Drive Link for Image Preview
+    String? displayUrl = DriveUtils.getDirectViewUrl(doc.imageUrl);
+
+    final isPending = accessRecord?.paymentStatus == PaymentStatus.pending;
+    final isLocked = !hasAccess;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -222,6 +262,10 @@ class _CourseCard extends StatelessWidget {
                       ? Image.network(
                           displayUrl,
                           fit: BoxFit.cover,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(child: CircularProgressIndicator());
+                          },
                           errorBuilder: (_, __, ___) => const Center(
                               child: Icon(Icons.school_rounded,
                                   size: 48, color: Color(0xFF1B5E20))),
@@ -230,7 +274,7 @@ class _CourseCard extends StatelessWidget {
                           child: Icon(Icons.school_rounded,
                               size: 48, color: Color(0xFF1B5E20))),
                 ),
-                // Brand Overlay
+                // Brand Overlay (trainer name)
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -277,12 +321,43 @@ class _CourseCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    doc.title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                        color: Color(0xFF1B5E20)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          doc.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Color(0xFF1B5E20)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Status chip
+                      if (accessRecord != null)
+                        StatusChip.fromPaymentStatus(accessRecord!.paymentStatus)
+                      else if (isLocked)
+                        StatusChip.locked(),
+                      
+                      if (doc.pdfUrl != null && doc.pdfUrl!.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => _openUrl(doc.pdfUrl!),
+                          icon: const Icon(Icons.picture_as_pdf,
+                              size: 16, color: Colors.red),
+                          label: const Text(
+                            'SYLLABUS',
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red),
+                          ),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -298,23 +373,54 @@ class _CourseCard extends StatelessWidget {
                     height: 50,
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) =>
-                                  CourseContentDetailScreen(doc: doc)),
-                        );
+                        if (hasAccess) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    CourseContentDetailScreen(doc: doc)),
+                          );
+                        } else if (!isPending) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PaymentRegistrationScreen(doc: doc)),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryGreen,
+                        backgroundColor:
+                            isPending ? Colors.orange.shade700 : primaryGreen,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text("ACCESS MATERIAL",
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            hasAccess
+                                ? Icons.play_arrow_rounded
+                                : isPending
+                                    ? Icons.hourglass_top_rounded
+                                    : Icons.lock_open_rounded,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            hasAccess
+                                ? "ACCESS MATERIAL"
+                                : isPending
+                                    ? "ஒப்புதல் காத்திருக்கிறது..."
+                                    : "பதிவு செய்யவும்",
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -324,5 +430,12 @@ class _CourseCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

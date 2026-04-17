@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:vaagai/firebase_options.dart';
 import 'package:vaagai/providers/auth_provider.dart';
 import 'package:vaagai/providers/course_provider.dart';
+import 'package:vaagai/providers/course_access_provider.dart';
 import 'core/routes/app_routes.dart';
 
 void main() async {
@@ -18,6 +19,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CourseProvider()),
+        ChangeNotifierProvider(create: (_) => CourseAccessProvider()),
       ],
       child: const MyApp(),
     ),

@@ -50,6 +50,7 @@ dependencies:
   intl: ^0.20.2
   syncfusion_flutter_pdfviewer: ^33.1.47
   youtube_player_iframe: ^5.2.2
+  youtube_player_flutter: ^9.1.0
 
 dev_dependencies:
   flutter_test:

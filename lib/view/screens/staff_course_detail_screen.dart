@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/drive_utils.dart';
 import '../../core/models/uploaded_document.dart';
-import 'pdf_viewer_screen.dart';
+import '../../core/models/course_video_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/course_access_provider.dart';
+import '../widgets/course_widgets.dart';
+import 'youtube_player_screen.dart';
+
 
 class StaffCourseDetailScreen extends StatefulWidget {
   final UploadedDocument doc;
@@ -28,6 +36,10 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
   
   bool _isUploadingVideo = false;
 
+  // Weekly upload tracking
+  int _weeklyUploadCount = 0;
+  static const int _maxWeeklyUploads = 4;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +53,17 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
     } else {
       _trainerControllers = trainersList.map((t) => TextEditingController(text: t.trim())).toList();
     }
+
+    // Load weekly upload count
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshWeeklyCount());
+  }
+
+  Future<void> _refreshWeeklyCount() async {
+    final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+    if (user == null) return;
+    final provider = Provider.of<CourseAccessProvider>(context, listen: false);
+    final count = await provider.getWeeklyUploadCount(widget.doc.id, user.uid);
+    if (mounted) setState(() => _weeklyUploadCount = count);
   }
 
   void _addTrainerField() {
@@ -84,35 +107,56 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
   }
 
   Future<void> _onAddVideo() async {
-    if (_videoTitleController.text.isEmpty || (_isDemoVideo && _youtubeUrlController.text.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all required fields")));
+    if (_videoTitleController.text.isEmpty || _youtubeUrlController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("தலைப்பு மற்றும் YouTube URL தேவை")));
+      return;
+    }
+
+    if (_weeklyUploadCount >= _maxWeeklyUploads) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('இந்த வாரம் 4 வீடியோக்கள் பதிவேற்றம் முடிந்தது!'),
+        ),
+      );
       return;
     }
 
     setState(() => _isUploadingVideo = true);
 
-    try {
-      await FirebaseFirestore.instance
-          .collection('course_uploads')
-          .doc(widget.doc.id)
-          .collection('videos')
-          .add({
-        'title': _videoTitleController.text.trim(),
-        'url': _youtubeUrlController.text.trim(),
-        'isDemo': _isDemoVideo,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+    final provider = Provider.of<CourseAccessProvider>(context, listen: false);
 
+    final error = await provider.submitVideo(
+      courseDocId: widget.doc.id,
+      courseTitle: widget.doc.title,
+      staffId: user?.uid ?? '',
+      staffName: user?.name ?? 'Staff',
+      title: _videoTitleController.text.trim(),
+      youtubeUrl: _youtubeUrlController.text.trim(),
+      isDemo: _isDemoVideo,
+    );
+
+    if (!mounted) return;
+    setState(() => _isUploadingVideo = false);
+
+    if (error == null) {
       _videoTitleController.clear();
       _youtubeUrlController.clear();
-      setState(() {
-        _isUploadingVideo = false;
-        _showAddVideoSection = false;
-      });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("வீடியோ வெற்றிகரமாக சேர்க்கப்பட்டது!")));
-    } catch (e) {
-      setState(() => _isUploadingVideo = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() => _showAddVideoSection = false);
+      await _refreshWeeklyCount();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF1B5E20),
+          content: Text('✅ வீடியோ சமர்ப்பிக்கப்பட்டது! நிர்வாகி ஒப்புதலுக்காக காத்திருக்கும்.',
+              style: TextStyle(color: Colors.white)),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text(error,
+              style: const TextStyle(color: Colors.white))));
     }
   }
 
@@ -133,22 +177,10 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
     const Color primaryGreen = Color(0xFF1B5E20);
     
     // Generate Direct Drive Link for Image
-    String? displayUrl = widget.doc.imageUrl;
-    if (displayUrl != null && displayUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(displayUrl);
-      if (match != null) {
-        displayUrl = 'https://drive.google.com/uc?export=view&id=${match.group(1)}';
-      }
-    }
+    String? displayUrl = DriveUtils.getDirectViewUrl(widget.doc.imageUrl);
 
     // Generate Direct Drive Link for PDF
-    String? pdfDirectUrl = widget.doc.pdfUrl;
-    if (pdfDirectUrl != null && pdfDirectUrl.contains('/file/d/')) {
-      final match = RegExp(r'/d/([a-zA-Z0-9_-]+)').firstMatch(pdfDirectUrl);
-      if (match != null) {
-        pdfDirectUrl = 'https://drive.google.com/uc?export=download&id=${match.group(1)}';
-      }
-    }
+    String? pdfDirectUrl = DriveUtils.getDirectDownloadUrl(widget.doc.pdfUrl);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -172,11 +204,24 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 2. COURSE INFO (Student Style)
-                  Text(
-                    widget.doc.title,
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: -0.5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.doc.title,
+                          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: primaryGreen, letterSpacing: -0.5),
+                        ),
+                      ),
+                      if (pdfDirectUrl != null && pdfDirectUrl.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => _openUrl(pdfDirectUrl),
+                          icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                          label: const Text("SYLLABUS", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   
                   // Instructors List Section (Matching Image 2)
                   const Text(
@@ -260,6 +305,8 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                       fileName: _selectedFileName,
                       onPickFile: () => setState(() => _selectedFileName = "demo_file.mp4"),
                       onAdd: _onAddVideo,
+                      weeklyUploadsUsed: _weeklyUploadCount,
+                      maxUploads: _maxWeeklyUploads,
                     ),
 
                   const SizedBox(height: 40),
@@ -273,17 +320,16 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                   
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('course_uploads')
-                        .doc(widget.doc.id)
-                        .collection('videos')
-                        .orderBy('createdAt', descending: false)
+                        .collection('course_videos')
+                        .where('courseDocId', isEqualTo: widget.doc.id)
                         .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Center(child: Text("வீடியோக்கள் எதுவும் இல்லை", style: TextStyle(color: Colors.grey.shade400)));
+                        return Center(child: Text("வீடியோக்கள் எதுவும் இல்லை",
+                            style: TextStyle(color: Colors.grey.shade400)));
                       }
 
                       return ListView.builder(
@@ -291,11 +337,12 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: snapshot.data!.docs.length,
                         itemBuilder: (context, index) {
-                          final video = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                          return _VideoListItem(
-                            title: video['title'] ?? 'No Title',
-                            isDemo: video['isDemo'] ?? false,
-                            onDelete: () => snapshot.data!.docs[index].reference.delete(),
+                          final video = CourseVideoModel.fromFirestore(
+                              snapshot.data!.docs[index]);
+                          return _StaffVideoListItem(
+                            video: video,
+                            onDelete: () =>
+                                snapshot.data!.docs[index].reference.delete(),
                           );
                         },
                       );
@@ -316,9 +363,26 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
       width: double.infinity,
       color: Colors.grey.shade100,
       child: url != null
-          ? Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)))
-          : const Center(child: Icon(Icons.school, size: 50, color: Colors.grey)),
+          ? Image.network(
+              url,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20)));
+              },
+              errorBuilder: (_, __, ___) => const Center(
+                  child: Icon(Icons.image, size: 50, color: Colors.grey)),
+            )
+          : const Center(
+              child: Icon(Icons.school, size: 50, color: Colors.grey)),
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
 
@@ -450,11 +514,25 @@ class _AddVideoCard extends StatelessWidget {
   final String? fileName;
   final VoidCallback onPickFile;
   final VoidCallback onAdd;
+  final int weeklyUploadsUsed;
+  final int maxUploads;
 
-  const _AddVideoCard({required this.titleCtrl, required this.urlCtrl, required this.isDemo, required this.isLoading, required this.onToggle, this.fileName, required this.onPickFile, required this.onAdd});
+  const _AddVideoCard({
+    required this.titleCtrl,
+    required this.urlCtrl,
+    required this.isDemo,
+    required this.isLoading,
+    required this.onToggle,
+    this.fileName,
+    required this.onPickFile,
+    required this.onAdd,
+    this.weeklyUploadsUsed = 0,
+    this.maxUploads = 4,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final limitReached = weeklyUploadsUsed >= maxUploads;
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(20),
@@ -468,67 +546,166 @@ class _AddVideoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("UPLOAD NEW CONTENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1B5E20))),
-          const SizedBox(height: 20),
-          TextFormField(
-            controller: titleCtrl,
-            decoration: InputDecoration(labelText: "Video Title", prefixIcon: const Icon(Icons.subtitles)),
-          ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("Make this a Demo Video?", style: TextStyle(fontWeight: FontWeight.bold)),
-              Switch(value: isDemo, onChanged: onToggle, activeColor: const Color(0xFF1B5E20)),
+          // Weekly upload counter banner
+          WeeklyUploadBanner(used: weeklyUploadsUsed, total: maxUploads),
+          const SizedBox(height: 16),
+          if (!limitReached) ...
+            [
+              TextFormField(
+                controller: titleCtrl,
+                decoration: InputDecoration(
+                    labelText: "Video Title",
+                    prefixIcon: const Icon(Icons.subtitles)),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Free Preview Video?",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Switch(
+                      value: isDemo,
+                      onChanged: onToggle,
+                      activeColor: const Color(0xFF1B5E20)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: urlCtrl,
+                decoration: const InputDecoration(
+                    labelText: "YouTube URL",
+                    prefixIcon: Icon(Icons.link, color: Colors.red),
+                    hintText: 'https://youtube.com/watch?v=...'),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ElevatedButton.icon(
+                        onPressed: onAdd,
+                        icon: const Icon(Icons.cloud_upload_rounded, size: 18),
+                        label: const Text("SUBMIT FOR APPROVAL",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1B5E20),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12))),
+                      ),
+              ),
             ],
-          ),
-          const SizedBox(height: 16),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: urlCtrl,
-            decoration: const InputDecoration(labelText: "YouTube URL", prefixIcon: Icon(Icons.link, color: Colors.red)),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : ElevatedButton(
-                  onPressed: onAdd,
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1B5E20), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text("UPLOAD VIDEO", style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _VideoListItem extends StatelessWidget {
-  final String title;
-  final bool isDemo;
+/// Replaces _VideoListItem — shows CourseVideoModel with status chip
+class _StaffVideoListItem extends StatelessWidget {
+  final CourseVideoModel video;
   final VoidCallback onDelete;
-  const _VideoListItem({required this.title, required this.isDemo, required this.onDelete});
+  const _StaffVideoListItem({required this.video, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    Color statusColor;
+    IconData statusIcon;
+    switch (video.status) {
+      case VideoStatus.approved:
+        statusColor = const Color(0xFF2E7D32);
+        statusIcon = Icons.check_circle_rounded;
+        break;
+      case VideoStatus.rejected:
+        statusColor = Colors.red.shade600;
+        statusIcon = Icons.cancel_rounded;
+        break;
+      default:
+        statusColor = Colors.orange.shade700;
+        statusIcon = Icons.pending_rounded;
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade100)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3))
+        ],
+      ),
       child: ListTile(
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         leading: Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: (isDemo ? Colors.blue : Colors.orange).withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(isDemo ? Icons.play_arrow_rounded : Icons.lock_rounded, color: isDemo ? Colors.blue : Colors.orange),
+          decoration: BoxDecoration(
+            color: (video.isDemo ? Colors.blue : Colors.orange).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            video.isDemo ? Icons.play_arrow_rounded : Icons.lock_rounded,
+            color: video.isDemo ? Colors.blue : Colors.orange,
+          ),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(isDemo ? "Free Preview" : "Premium Content", style: TextStyle(fontSize: 11, color: isDemo ? Colors.blue : Colors.orange, fontWeight: FontWeight.bold)),
-        trailing: IconButton(
-          onPressed: onDelete,
-          icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+        title: Text(video.title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              Icon(statusIcon, size: 12, color: statusColor),
+              const SizedBox(width: 4),
+              Text(
+                video.status.name.toUpperCase(),
+                style: TextStyle(
+                    fontSize: 10,
+                    color: statusColor,
+                    fontWeight: FontWeight.bold),
+              ),
+              if (video.isDemo) ...
+                [
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(4)),
+                    child: const Text('FREE',
+                        style: TextStyle(
+                            fontSize: 9,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold)),
+                  )
+                ],
+            ],
+          ),
         ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => YouTubePlayerScreen(videoUrl: video.youtubeUrl, title: video.title),
+            ),
+          );
+        },
+        trailing: video.status == VideoStatus.pending
+            ? IconButton(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: Colors.redAccent, size: 20),
+              )
+            : const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
       ),
     );
   }
 }
+
+
