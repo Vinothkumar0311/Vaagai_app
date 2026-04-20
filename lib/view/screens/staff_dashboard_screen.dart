@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/models/app_models.dart';
 import 'course_detail_screen.dart';
+import '../widgets/dialogs.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
   const StaffDashboardScreen({super.key});
@@ -40,9 +41,14 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Provider.of<AuthProvider>(context, listen: false).logout();
-              Navigator.pushReplacementNamed(context, '/login');
+            onPressed: () async {
+              final confirm = await DialogUtils.showLogoutConfirmation(context);
+              if (confirm && context.mounted) {
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                authProvider.logout();
+                Navigator.pushReplacementNamed(context, '/login');
+              }
             },
           ),
         ],

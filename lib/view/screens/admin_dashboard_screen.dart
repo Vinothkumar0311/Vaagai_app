@@ -6,9 +6,11 @@ import '../../core/constants/app_colors.dart';
 import '../../core/models/app_models.dart';
 import 'admin_payment_approval_screen.dart';
 import 'admin_video_approval_screen.dart';
+import '../widgets/dialogs.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
+  static const _roles = ['student', 'staff', 'admin'];
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +22,14 @@ class AdminDashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Provider.of<AuthProvider>(context, listen: false).logout();
-              Navigator.pushReplacementNamed(context, '/login');
+            onPressed: () async {
+              final confirm = await DialogUtils.showLogoutConfirmation(context);
+              if (confirm && context.mounted) {
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
+                authProvider.logout();
+                Navigator.pushReplacementNamed(context, '/login');
+              }
             },
           ),
         ],
@@ -50,50 +57,50 @@ class AdminDashboardScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('course_access')
-                            .where('paymentStatus', isEqualTo: 'pending')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          final count = snapshot.data?.docs.length ?? 0;
-                          return _AdminActionCard(
-                            icon: Icons.payment_rounded,
-                            title: 'கட்டண\nஒப்புதல்',
-                            subtitle: count > 0 ? '$count requests' : 'No requests',
-                            color: const Color(0xFF1B5E20),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const AdminPaymentApprovalScreen()),
-                            ),
-                          );
-                        }
-                      ),
+                          stream: FirebaseFirestore.instance
+                              .collection('course_access')
+                              .where('paymentStatus', isEqualTo: 'pending')
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.docs.length ?? 0;
+                            return _AdminActionCard(
+                              icon: Icons.payment_rounded,
+                              title: 'கட்டண\nஒப்புதல்',
+                              subtitle:
+                                  count > 0 ? '$count requests' : 'No requests',
+                              color: const Color(0xFF1B5E20),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const AdminPaymentApprovalScreen()),
+                              ),
+                            );
+                          }),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('course_videos')
-                            .where('status', isEqualTo: 'pending')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          final count = snapshot.data?.docs.length ?? 0;
-                          return _AdminActionCard(
-                            icon: Icons.video_library_rounded,
-                            title: 'வீடியோ\nஒப்புதல்',
-                            subtitle: count > 0 ? '$count videos' : 'No videos',
-                            color: Colors.indigo.shade700,
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const AdminVideoApprovalScreen()),
-                            ),
-                          );
-                        }
-                      ),
+                          stream: FirebaseFirestore.instance
+                              .collection('course_videos')
+                              .where('status', isEqualTo: 'pending')
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.docs.length ?? 0;
+                            return _AdminActionCard(
+                              icon: Icons.video_library_rounded,
+                              title: 'வீடியோ\nஒப்புதல்',
+                              subtitle:
+                                  count > 0 ? '$count videos' : 'No videos',
+                              color: Colors.indigo.shade700,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const AdminVideoApprovalScreen()),
+                              ),
+                            );
+                          }),
                     ),
                   ],
                 ),
@@ -218,7 +225,6 @@ class _AdminActionCard extends StatelessWidget {
   }
 }
 
-
 class _UserListItem extends StatefulWidget {
   final UserModel user;
   const _UserListItem({required this.user});
@@ -299,7 +305,7 @@ class _UserListItemState extends State<_UserListItem> {
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8)),
                     ),
-                    items: ['student', 'staff', 'admin'].map((role) {
+                    items: AdminDashboardScreen._roles.map((role) {
                       return DropdownMenuItem(
                           value: role, child: Text(role.toUpperCase()));
                     }).toList(),

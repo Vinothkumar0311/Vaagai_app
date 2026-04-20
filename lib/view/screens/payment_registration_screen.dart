@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vaagai/core/constants/app_strings.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
 import '../../core/models/uploaded_document.dart';
 import '../../core/models/course_video_model.dart';
+import '../../core/models/course_access_model.dart';
 import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
 import 'pdf_viewer_screen.dart';
@@ -68,7 +70,7 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'பதிவு வெற்றிகரமாக முடிந்தது! நிர்வாகி ஒப்புதலுக்காக காத்திருக்கவும்.',
+                  AppStrings.paymentSuccess,
                   style: TextStyle(color: Colors.white),
                 ),
               ),
@@ -90,12 +92,17 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<AuthProvider>(context).userModel;
+    final accessProvider = Provider.of<CourseAccessProvider>(context);
+    final accessRecord = user != null ? accessProvider.accessRecordFor(widget.doc.id) : null;
+    final isPending = accessRecord?.paymentStatus == PaymentStatus.pending;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text(
-          'பாட பதிவு',
-          style: TextStyle(
+        title: Text(
+          isPending ? AppStrings.statusAppBar : AppStrings.paymentAppBar,
+          style: const TextStyle(
               fontWeight: FontWeight.bold, color: _primary, fontSize: 18),
         ),
         backgroundColor: Colors.white,
@@ -109,6 +116,34 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (isPending)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.hourglass_empty_rounded, color: Colors.orange.shade800),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          AppStrings.pendingBanner,
+                          style: TextStyle(
+                            color: Color(0xFFE65100),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Course Info Card
               _CourseInfoCard(doc: widget.doc),
               const SizedBox(height: 24),
@@ -122,96 +157,116 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
               const SizedBox(height: 24),
 
               // Notes field
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'கூடுதல் குறிப்பு (விரும்பினால்)',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.black87),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _notesCtrl,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'கட்டண தகவல் அல்லது கேள்விகள்...',
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: _primary),
+              if (!isPending)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        AppStrings.notesLabel,
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.black87),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _notesCtrl,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: AppStrings.notesHint,
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: _primary),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 32),
 
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+              // Status UI or Submit Button
+              if (isPending)
+                Center(
+                  child: Column(
+                    children: [
+                      const Icon(Icons.check_circle_outline, color: Colors.green, size: 48),
+                      const SizedBox(height: 12),
+                      const Text(
+                        AppStrings.requestedStatus,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        AppStrings.adminContactSoon,
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5),
-                        )
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.send_rounded, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'பதிவு கோரிக்கை அனுப்பு',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  letterSpacing: 0.3),
-                            ),
-                          ],
-                        ),
+                )
+              else
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primary,
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.send_rounded, size: 20),
+                              SizedBox(width: 10),
+                              Text(
+                                AppStrings.submitRequestButton,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    letterSpacing: 0.3),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               Center(
                 child: Text(
-                  'நிர்வாகி ஒப்புதலுக்கு பிறகு பாடம் திறக்கப்படும்',
+                  AppStrings.adminApprovalFooter,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
                 ),
@@ -253,7 +308,7 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
               ),
               const SizedBox(width: 12),
               const Text(
-                'கட்டண வழிமுறை',
+                AppStrings.paymentMethodTitle,
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -262,11 +317,10 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          _instructionRow('1', 'UPI / GPay மூலம் கட்டணம் செலுத்தவும்'),
-          _instructionRow(
-              '2', 'கட்டண ஸ்க்ரீன்ஷாட்டை எடுத்து வைத்துக் கொள்ளவும்'),
-          _instructionRow('3', 'கீழே உள்ள "பதிவு கோரிக்கை" அனுப்பவும்'),
-          _instructionRow('4', 'நிர்வாகி ஒப்புதலுக்கு பிறகு பாடம் திறக்கும்'),
+          _instructionRow('1', AppStrings.step1),
+          _instructionRow('2', AppStrings.step2),
+          _instructionRow('3', AppStrings.step3),
+          _instructionRow('4', AppStrings.step4),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
@@ -281,7 +335,7 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'கட்டண விவரங்களுக்கு நிர்வாகியை தொடர்பு கொள்ளவும்',
+                    AppStrings.contactAdminInfo,
                     style: TextStyle(
                         fontSize: 12,
                         color: Color(0xFF1B5E20),
@@ -327,10 +381,6 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// COURSE INFO CARD (reusable summary card)
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _CourseInfoCard extends StatelessWidget {
   final UploadedDocument doc;
@@ -403,15 +453,6 @@ class _CourseInfoCard extends StatelessWidget {
                             final pdfViewUrl =
                                 DriveUtils.getDirectViewUrl(doc.pdfUrl);
                             if (pdfViewUrl != null) {
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => PdfViewerScreen(
-                              //       pdfUrl: pdfViewUrl,
-                              //       title: "${doc.title} - Syllabus",
-                              //     ),
-                              //   ),
-                              // );
                               Navigator.push(
                                   context,
                                   MaterialPageRoute(
@@ -423,7 +464,7 @@ class _CourseInfoCard extends StatelessWidget {
                           icon: const Icon(Icons.picture_as_pdf,
                               size: 18, color: Colors.red),
                           label: const Text(
-                            'VIEW SYLLABUS (PDF)',
+                            AppStrings.viewSyllabusPdf,
                             style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -445,10 +486,6 @@ class _CourseInfoCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DEMO VIDEOS SECTION
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _DemoVideosSection extends StatelessWidget {
   final String courseDocId;
   const _DemoVideosSection({required this.courseDocId});
@@ -461,7 +498,7 @@ class _DemoVideosSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'மாதிரி வீடியோக்கள் (Demo Videos)',
+          AppStrings.demoVideosTitle,
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -486,7 +523,7 @@ class _DemoVideosSection extends StatelessWidget {
                   children: [
                     Icon(Icons.info_outline, color: Colors.grey),
                     SizedBox(width: 12),
-                    Text('மாதிரி வீடியோக்கள் எதுவும் இல்லை',
+                    Text(AppStrings.noDemoVideos,
                         style: TextStyle(color: Colors.grey, fontSize: 13)),
                   ],
                 ),
@@ -504,15 +541,13 @@ class _DemoVideosSection extends StatelessWidget {
               itemBuilder: (context, i) {
                 final video = videos[i];
                 
-                // Extract Thumbnail
                 String? thumbUrl;
-                final uri = Uri.tryParse(video.youtubeUrl);
-                if (uri != null) {
+                try {
                   String? videoId = YoutubePlayerController.convertUrlToId(video.youtubeUrl);
                   if (videoId != null) {
                     thumbUrl = 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
                   }
-                }
+                } catch (_) {}
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
@@ -531,7 +566,6 @@ class _DemoVideosSection extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      // Thumbnail
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: Container(
@@ -551,7 +585,6 @@ class _DemoVideosSection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      // Title and demo tag
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,9 +605,9 @@ class _DemoVideosSection extends StatelessWidget {
                               decoration: BoxDecoration(
                                   color: Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(4)),
-                              child: Text("DEMO",
+                              child: const Text("DEMO",
                                   style: TextStyle(
-                                      color: Colors.blue.shade700,
+                                      color: Color(0xFF1976D2),
                                       fontSize: 9,
                                       fontWeight: FontWeight.bold)),
                             ),
@@ -582,7 +615,6 @@ class _DemoVideosSection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // WATCH Button
                       ElevatedButton(
                         onPressed: () {
                           Navigator.push(
@@ -602,7 +634,7 @@ class _DemoVideosSection extends StatelessWidget {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
-                        child: const Text("WATCH",
+                        child: const Text(AppStrings.watchButtonText,
                             style: TextStyle(
                                 fontSize: 11, fontWeight: FontWeight.bold)),
                       ),

@@ -117,17 +117,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: Icons.email_outlined,
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(AppStrings.passwordLabel, style: TextStyle(fontWeight: FontWeight.w500)),
-                      Text(AppStrings.forgotPassword, style: const TextStyle(color: Colors.red)),
-                    ],
-                  ),
+                  const Text(AppStrings.passwordLabel, style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
                   _buildInputField(
                     controller: passwordController,
-                    hint: 'கடவுச்சொல்',
+                    hint: AppStrings.passwordLabel,
                     icon: Icons.lock_outline,
                     isPassword: true,
                   ),
@@ -145,6 +139,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 25),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => _showSnack(AppStrings.forgotPassword),
+                      child: Text(
+                        AppStrings.forgotPassword, 
+                        style: const TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.bold)
+                      )
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   if (isStudentLogin)
                     Container(
                       width: double.infinity,
@@ -154,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: WrapAlignment.spaceBetween,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          Text(AppStrings.noAccount),
+                          const Text(AppStrings.noAccount),
                           TextButton(
                             onPressed: () {
                               debugPrint("Navigating to Register...");

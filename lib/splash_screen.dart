@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vaagai/core/routes/app_routes.dart';
 import 'package:vaagai/providers/auth_provider.dart';
+import 'package:vaagai/core/utils/session_manager.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,7 +12,12 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  static const _splashDelay = Duration(seconds: 3);
+  static const _pollDelay = Duration(milliseconds: 100);
+  static const _maxLoadingWaitMs = 5000;
+
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -35,16 +41,41 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateNext() async {
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(_splashDelay);
     if (!mounted) return;
 
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
-    // If already logged in, go to dashboard (which routes based on role)
-    if (authProvider.userModel != null) {
-      Navigator.pushReplacementNamed(context, AppRoutes.dashboard);
+    final navigator = Navigator.of(context);
+
+    var hasValidSession = await SessionManager.isSessionValid();
+
+    if (!mounted) return;
+
+    // If user is logged in Firebase Auth but session data is missing (after cache clear),
+    // restore the session instead of logging them out
+    if (authProvider.isLoggedIn && !hasValidSession) {
+      await SessionManager.saveSession();
+      hasValidSession = true;
+    }
+
+    // Wait for user details to be fetched if still loading
+    // (important for cache-cleared scenarios or slow network)
+    var maxWaitTime = 0;
+    while (authProvider.isLoading && maxWaitTime < _maxLoadingWaitMs) {
+      await Future.delayed(_pollDelay);
+      maxWaitTime += _pollDelay.inMilliseconds;
+      if (!mounted) return;
+    }
+
+    if (!mounted) return;
+
+    // Navigate based on authentication status
+    // If user is logged in with valid session, go to dashboard
+    // (userModel will be populated after user details are fetched)
+    if (authProvider.isLoggedIn && hasValidSession) {
+      navigator.pushReplacementNamed(AppRoutes.dashboard);
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      navigator.pushReplacementNamed(AppRoutes.login);
     }
   }
 
@@ -67,7 +98,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               'assets/images/logo.png',
               width: 250,
               height: 300,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.school, size: 100, color: Colors.green),
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.school, size: 100, color: Colors.green),
             ),
           ),
         ),

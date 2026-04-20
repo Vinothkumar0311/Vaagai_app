@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:vaagai/core/constants/app_strings.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
@@ -9,7 +10,8 @@ import '../../core/models/course_access_model.dart';
 import '../widgets/course_widgets.dart';
 import 'course_content_detail_screen.dart';
 import 'payment_registration_screen.dart';
-import 'pdf_viewer_screen.dart';
+import '../widgets/dialogs.dart';
+import '../widgets/dashboard_sections.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -19,15 +21,14 @@ class StudentDashboardScreen extends StatefulWidget {
 }
 
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
-  final Color primaryGreen = const Color(0xFF1B5E20);
+  static const Color _primaryGreen = Color(0xFF1B5E20);
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // Pre-fetch this student's access records immediately
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user =
-          Provider.of<AuthProvider>(context, listen: false).userModel;
+      final user = Provider.of<AuthProvider>(context, listen: false).userModel;
       if (user != null) {
         Provider.of<CourseAccessProvider>(context, listen: false)
             .fetchMyAccessRecords(user.uid);
@@ -40,121 +41,246 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     final user = Provider.of<AuthProvider>(context).userModel;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text(
-          "மாணவர் முகப்பு",
-          style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Color(0xFF1B5E20)),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: primaryGreen,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFF1B5E20)),
-            onPressed: () {
-              Provider.of<AuthProvider>(context, listen: false).logout();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: const Color(0xFFFCF9F0),
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _selectedIndex,
           children: [
-            // Welcome Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: primaryGreen.withOpacity(0.1),
-                    child: Icon(Icons.person, color: primaryGreen, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'வணக்கம், ${user?.name ?? ""}',
-                          style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500),
-                        ),
-                        const Text(
-                          'உங்களுக்குப் பிடித்த பாடத்தைத் தொடங்குங்கள்',
-                          style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1B5E20),
-                              height: 1.2),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Course List from Firebase (course_uploads collection)
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('course_uploads')
-                    .orderBy('createdAt', descending: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
-                        child: CircularProgressIndicator(color: primaryGreen));
-                  }
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildEmptyState();
-                  }
-
-                  final docs = snapshot.data!.docs
-                      .map((d) => UploadedDocument.fromFirestore(d))
-                      .toList();
-
-                  return Consumer<CourseAccessProvider>(
-                    builder: (context, accessProvider, _) {
-                      final user = Provider.of<AuthProvider>(context, listen: false).userModel;
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: docs.length,
-                        itemBuilder: (context, index) {
-                          final doc = docs[index];
-                          final accessRecord = user != null
-                              ? accessProvider.accessRecordFor(doc.id)
-                              : null;
-                          final hasAccess = user != null &&
-                              accessProvider.isCourseAccessible(user.uid, doc.id);
-                          return _CourseCard(
-                            doc: doc,
-                            primaryGreen: primaryGreen,
-                            hasAccess: hasAccess,
-                            accessRecord: accessRecord,
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
+            _buildHomeTab(user),
+            _buildCoursesTab(),
+            _buildPlaceholderTab(AppStrings.notificationsTab, Icons.notifications_none_rounded),
+            _buildPlaceholderTab(AppStrings.profileTab, Icons.person_outline_rounded),
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(primaryGreen),
+      extendBody: true,
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildHomeTab(user) {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120,
+          floating: false,
+          pinned: true,
+          elevation: 0,
+          backgroundColor: _primaryGreen,
+          flexibleSpace: FlexibleSpaceBar(
+            titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            title: const Text(
+              "வாகை முகப்பு",
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+            ),
+            background: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [_primaryGreen, Color(0xFF2E7D32)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: -30,
+                  top: -10,
+                  child: Opacity(
+                    opacity: 0.1,
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 200,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 200),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () async {
+                final confirm = await DialogUtils.showLogoutConfirmation(context);
+                if (confirm && context.mounted) {
+                  final authProvider =
+                      Provider.of<AuthProvider>(context, listen: false);
+                  authProvider.logout();
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        SliverToBoxAdapter(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: _primaryGreen.withOpacity(0.1),
+                  child: const Icon(Icons.person, color: _primaryGreen, size: 36),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${AppStrings.welcomeMessage}${user?.name ?? ""}',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'வாகை தமிழ்ச்சங்கத்திற்கு வரவேற்கிறோம்',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: _primaryGreen,
+                            letterSpacing: -0.5,
+                            height: 1.1),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+          sliver: SliverToBoxAdapter(child: AboutSection()),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+          sliver: SliverToBoxAdapter(child: VisionMissionSection()),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+          sliver: SliverToBoxAdapter(child: ApprovalsSection()),
+        ),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
+          sliver: SliverToBoxAdapter(child: ForumSection()),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      ],
+    );
+  }
+
+  Widget _buildCoursesTab() {
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          title: const Text(AppStrings.coursesTab, style: TextStyle(fontWeight: FontWeight.bold, color: _primaryGreen)),
+          backgroundColor: Colors.white,
+          pinned: true,
+          elevation: 0,
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Text(
+              AppStrings.startLearning,
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: _primaryGreen),
+            ),
+          ),
+        ),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('course_uploads')
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator(color: _primaryGreen)),
+                ),
+              );
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return SliverToBoxAdapter(child: _buildEmptyState());
+            }
+
+            final docs = snapshot.data!.docs
+                .map((d) => UploadedDocument.fromFirestore(d))
+                .toList();
+
+            return Consumer<CourseAccessProvider>(
+              builder: (context, accessProvider, _) {
+                final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final doc = docs[index];
+                        final accessRecord = user != null
+                            ? accessProvider.accessRecordFor(doc.id)
+                            : null;
+                        final hasAccess = user != null &&
+                            accessProvider.isCourseAccessible(user.uid, doc.id);
+                        return _CourseCard(
+                          doc: doc,
+                          primaryGreen: _primaryGreen,
+                          hasAccess: hasAccess,
+                          accessRecord: accessRecord,
+                        );
+                      },
+                      childCount: docs.length,
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+      ],
+    );
+  }
+
+  Widget _buildPlaceholderTab(String title, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: _primaryGreen.withOpacity(0.2)),
+          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
+      ),
     );
   }
 
@@ -175,38 +301,60 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildBottomNav(Color primary) {
+  Widget _buildBottomNav() {
     return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home_rounded, "முகப்பு", true),
-          _navItem(Icons.menu_book_rounded, "பாடங்கள்", false),
-          _navItem(Icons.notifications_none_rounded, "அறிவிப்பு", false),
-          _navItem(Icons.person_outline_rounded, "சுயவிவரம்", false),
+          _navItem(Icons.home_rounded, AppStrings.homeTab, 0),
+          _navItem(Icons.menu_book_rounded, AppStrings.coursesTab, 1),
+          _navItem(Icons.notifications_none_rounded, AppStrings.notificationsTab, 2),
+          _navItem(Icons.person_outline_rounded, AppStrings.profileTab, 3),
         ],
       ),
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            color: active ? const Color(0xFF1B5E20) : Colors.grey, size: 26),
-        const SizedBox(height: 2),
-        Text(label,
-            style: TextStyle(
-                color: active ? const Color(0xFF1B5E20) : Colors.grey,
-                fontSize: 11,
-                fontWeight: active ? FontWeight.bold : FontWeight.w500)),
-      ],
+  Widget _navItem(IconData icon, String label, int index) {
+    final bool active = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: active ? BoxDecoration(
+          color: _primaryGreen.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+        ) : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: active ? _primaryGreen : Colors.grey.shade400, size: 24),
+            const SizedBox(height: 4),
+            Text(label,
+                style: TextStyle(
+                    color: active ? _primaryGreen : Colors.grey.shade500,
+                    fontSize: 10,
+                    fontWeight: active ? FontWeight.bold : FontWeight.w500)),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -226,10 +374,7 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Generate Direct Drive Link for Image Preview
-    // Generate Direct Drive Link for Image Preview
-    String? displayUrl = DriveUtils.getDirectViewUrl(doc.imageUrl);
-
+    final displayUrl = DriveUtils.getDirectViewUrl(doc.imageUrl);
     final isPending = accessRecord?.paymentStatus == PaymentStatus.pending;
     final isLocked = !hasAccess;
 
@@ -251,7 +396,6 @@ class _CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner Section
             Stack(
               children: [
                 Container(
@@ -264,24 +408,23 @@ class _CourseCard extends StatelessWidget {
                           fit: BoxFit.cover,
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                                child: CircularProgressIndicator());
                           },
                           errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.school_rounded,
+                               child: Icon(Icons.school_rounded,
                                   size: 48, color: Color(0xFF1B5E20))),
                         )
                       : const Center(
                           child: Icon(Icons.school_rounded,
                               size: 48, color: Color(0xFF1B5E20))),
                 ),
-                // Brand Overlay (trainer name)
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
@@ -333,43 +476,11 @@ class _CourseCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Status chip
                       if (accessRecord != null)
-                        StatusChip.fromPaymentStatus(accessRecord!.paymentStatus)
+                        StatusChip.fromPaymentStatus(
+                            accessRecord!.paymentStatus)
                       else if (isLocked)
                         StatusChip.locked(),
-                      
-                      // if (doc.pdfUrl != null && doc.pdfUrl!.isNotEmpty)
-                        // TextButton.icon(
-                        //   onPressed: () {
-                        //     final pdfViewUrl = DriveUtils.getDirectViewUrl(doc.pdfUrl);
-                        //     if (pdfViewUrl != null) {
-                        //       Navigator.push(
-                        //         context,
-                        //         MaterialPageRoute(
-                        //           builder: (context) => PdfViewerScreen(
-                        //             pdfUrl: pdfViewUrl,
-                        //             title: "${doc.title} - Syllabus",
-                        //           ),
-                        //         ),
-                        //       );
-                        //     }
-                        //   },
-                        //   icon: const Icon(Icons.picture_as_pdf,
-                        //       size: 16, color: Colors.red),
-                        //   label: const Text(
-                        //     'SYLLABUS',
-                        //     style: TextStyle(
-                        //         fontSize: 10,
-                        //         fontWeight: FontWeight.bold,
-                        //         color: Colors.red),
-                        //   ),
-                        //   style: TextButton.styleFrom(
-                        //     padding: const EdgeInsets.symmetric(horizontal: 0),
-                        //     minimumSize: Size.zero,
-                        //     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        //   ),
-                        // ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -393,7 +504,7 @@ class _CourseCard extends StatelessWidget {
                                 builder: (context) =>
                                     CourseContentDetailScreen(doc: doc)),
                           );
-                        } else if (!isPending) {
+                        } else {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -424,10 +535,10 @@ class _CourseCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             hasAccess
-                                ? "ACCESS MATERIAL"
+                                ? AppStrings.accessMaterial
                                 : isPending
-                                    ? "ஒப்புதல் காத்திருக்கிறது..."
-                                    : "பதிவு செய்யவும்",
+                                    ? AppStrings.approvalPending
+                                    : AppStrings.registerCourse,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5),
@@ -444,5 +555,4 @@ class _CourseCard extends StatelessWidget {
       ),
     );
   }
-
 }
