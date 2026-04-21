@@ -3,35 +3,35 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/models/app_models.dart';
+import '../../core/routes/app_routes.dart';
 import 'admin_payment_approval_screen.dart';
 import 'admin_video_approval_screen.dart';
 import '../widgets/dialogs.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
-  static const _roles = ['student', 'staff', 'admin'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('நிர்வாகி பகுதி (Admin)'),
+        title: const Text('நிர்வாகி பகுதி (Admin)', style: TextStyle(fontWeight: FontWeight.w900)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout_rounded),
             onPressed: () async {
               final confirm = await DialogUtils.showLogoutConfirmation(context);
               if (confirm && context.mounted) {
-                final authProvider =
-                    Provider.of<AuthProvider>(context, listen: false);
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
                 authProvider.logout();
-                Navigator.pushReplacementNamed(context, '/login');
+                Navigator.pushReplacementNamed(context, AppRoutes.login);
               }
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -39,112 +39,111 @@ class AdminDashboardScreen extends StatelessWidget {
         children: [
           // ── Quick Action Cards ──────────────────────────────────────────
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+            color: AppColors.primary,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'நிர்வாக பகுதிகள்',
+                  'நிர்வாக பணிகள்',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.grey,
-                      letterSpacing: 0.5),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: Colors.white70,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('course_access')
-                              .where('paymentStatus', isEqualTo: 'pending')
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data?.docs.length ?? 0;
-                            return _AdminActionCard(
-                              icon: Icons.payment_rounded,
-                              title: 'கட்டண\nஒப்புதல்',
-                              subtitle:
-                                  count > 0 ? '$count requests' : 'No requests',
-                              color: const Color(0xFF1B5E20),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AdminPaymentApprovalScreen()),
-                              ),
-                            );
-                          }),
+                        stream: FirebaseFirestore.instance
+                            .collection('course_access')
+                            .where('paymentStatus', isEqualTo: 'pending')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data?.docs.length ?? 0;
+                          return _AdminActionCard(
+                            icon: Icons.payments_rounded,
+                            title: 'கட்டண ஒப்பதல்கள்',
+                            subtitle: count > 30 ? '30+ requests' : '$count requests',
+                            color: const Color(0xFF2E7D32),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminPaymentApprovalScreen()),
+                            ),
+                          );
+                        }
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('course_videos')
-                              .where('status', isEqualTo: 'pending')
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data?.docs.length ?? 0;
-                            return _AdminActionCard(
-                              icon: Icons.video_library_rounded,
-                              title: 'வீடியோ\nஒப்புதல்',
-                              subtitle:
-                                  count > 0 ? '$count videos' : 'No videos',
-                              color: Colors.indigo.shade700,
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        const AdminVideoApprovalScreen()),
-                              ),
-                            );
-                          }),
+                        stream: FirebaseFirestore.instance
+                            .collection('course_videos')
+                            .where('status', isEqualTo: 'pending')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          final count = snapshot.data?.docs.length ?? 0;
+                          return _AdminActionCard(
+                            icon: Icons.video_collection_rounded,
+                            title: 'வீடியோ ஒப்பதல்கள்',
+                            subtitle: count > 10 ? '10+ videos' : '$count videos',
+                            color: Colors.indigo.shade800,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const AdminVideoApprovalScreen()),
+                            ),
+                          );
+                        }
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                const Divider(height: 1),
-                const SizedBox(height: 4),
-                const Text(
-                  'பயனர் மேலாண்மை',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: Colors.grey,
-                      letterSpacing: 0.5),
-                ),
-                const SizedBox(height: 4),
               ],
             ),
           ),
-          // ── User List ───────────────────────────────────────────────────
+
+          // ── Management Sections ──────────────────────────────────────────
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance.collection('users').snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text('பயனர்கள் யாரும் இல்லை'));
-                }
-
-                final users = snapshot.data!.docs
-                    .map((doc) => UserModel.fromFirestore(doc))
-                    .toList();
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final user = users[index];
-                    return _UserListItem(user: user);
-                  },
-                );
-              },
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'மேலாண்மை',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                        color: Color(0xFF2D3142),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _AdminSelectionCard(
+                      title: 'பயனர் மேலாண்மை',
+                      subtitle: 'பயனர்களைத் தேடவும், வடிகட்டவும் மற்றும் பங்குகளை மாற்றவும்',
+                      icon: Icons.people_alt_rounded,
+                      color: AppColors.primary,
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.userManagement),
+                    ),
+                    const SizedBox(height: 16),
+                    _AdminSelectionCard(
+                      title: 'பாடநெறி அமைப்புகள்',
+                      subtitle: 'பாடநெறிகளை நிர்வகிக்கவும் மற்றும் புதியவற்றைச் சேர்க்கவும்',
+                      icon: Icons.menu_book_rounded,
+                      color: Colors.orange.shade800,
+                      onTap: () {}, // Future feature
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -152,10 +151,6 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ADMIN ACTION CARD
-// ─────────────────────────────────────────────────────────────────────────────
 
 class _AdminActionCard extends StatelessWidget {
   final IconData icon;
@@ -176,16 +171,12 @@ class _AdminActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color, color.withOpacity(0.75)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+          color: color,
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.3),
@@ -197,27 +188,17 @@ class _AdminActionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: Colors.white, size: 22),
-            ),
+            Icon(icon, color: Colors.white, size: 28),
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  height: 1.2),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2),
             ),
             const SizedBox(height: 4),
-            Text(subtitle,
-                style: TextStyle(
-                    color: Colors.white.withOpacity(0.75), fontSize: 11)),
+            Text(
+              subtitle,
+              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -225,131 +206,71 @@ class _AdminActionCard extends StatelessWidget {
   }
 }
 
-class _UserListItem extends StatefulWidget {
-  final UserModel user;
-  const _UserListItem({required this.user});
+class _AdminSelectionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-  @override
-  State<_UserListItem> createState() => _UserListItemState();
-}
-
-class _UserListItemState extends State<_UserListItem> {
-  late String _selectedRole;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedRole = widget.user.role;
-  }
+  const _AdminSelectionCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
-                  child: Text(widget.user.name[0].toUpperCase(),
-                      style: const TextStyle(color: AppColors.primary)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.user.name,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(widget.user.email,
-                          style: const TextStyle(
-                              color: Colors.grey, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getRoleColor(widget.user.role).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    widget.user.role.toUpperCase(),
-                    style: TextStyle(
-                        color: _getRoleColor(widget.user.role),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10),
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 0),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    items: AdminDashboardScreen._roles.map((role) {
-                      return DropdownMenuItem(
-                          value: role, child: Text(role.toUpperCase()));
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) setState(() => _selectedRole = value);
-                    },
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF2D3142)),
                   ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500),
                   ),
-                  onPressed: () async {
-                    await authProvider.updateRole(
-                        widget.user.uid, _selectedRole);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('பயனர் பங்கு புதுப்பிக்கப்பட்டது')),
-                      );
-                    }
-                  },
-                  child: const Text('Update'),
-                ),
-              ],
+                ],
+              ),
             ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade300, size: 14),
           ],
         ),
       ),
     );
-  }
-
-  Color _getRoleColor(String role) {
-    switch (role) {
-      case 'admin':
-        return Colors.red;
-      case 'staff':
-        return Colors.blue;
-      default:
-        return Colors.green;
-    }
   }
 }

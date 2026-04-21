@@ -257,10 +257,17 @@ class CourseAccessProvider with ChangeNotifier {
           .collection('course_videos')
           .where('courseDocId', isEqualTo: courseDocId)
           .where('uploadedBy', isEqualTo: staffId)
-          .where('createdAt',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(weekStartDate))
           .get();
-      return snap.docs.length;
+
+      // Filter in-memory to avoid index requirement
+      final weekStartTimestamp = Timestamp.fromDate(weekStartDate);
+      final count = snap.docs.where((doc) {
+        final createdAt = doc.data()['createdAt'] as Timestamp?;
+        if (createdAt == null) return false;
+        return createdAt.seconds >= weekStartTimestamp.seconds;
+      }).length;
+
+      return count;
     } catch (e) {
       debugPrint('getWeeklyUploadCount error: $e');
       return 0;
@@ -274,7 +281,6 @@ class CourseAccessProvider with ChangeNotifier {
         .collection('course_videos')
         .where('courseDocId', isEqualTo: courseDocId)
         .where('uploadedBy', isEqualTo: staffId)
-        .orderBy('createdAt', descending: false)
         .snapshots();
   }
 
@@ -325,11 +331,21 @@ class CourseAccessProvider with ChangeNotifier {
   }
 
   /// Admin approves a video → becomes visible to students.
+  /// Enforces: only Pending videos can be approved.
   Future<String?> approveVideo({
     required String videoId,
     required String adminId,
   }) async {
     try {
+      // 1. Fetch current status
+      final doc = await _db.collection('course_videos').doc(videoId).get();
+      if (!doc.exists) return 'வீடியோ கண்டறியப்படவில்லை';
+      
+      final currentStatus = doc.data()?['status'] ?? 'pending';
+      if (currentStatus != 'pending') {
+        return 'நிலுவையில் (Pending) உள்ள வீடியோக்களை மட்டுமே ஒப்புதல் அளிக்க முடியும். இந்த வீடியோ ஏற்கனவே $currentStatus நிலையில் உள்ளது.';
+      }
+
       await _db.collection('course_videos').doc(videoId).update({
         'status': VideoStatus.approved.name,
         'approvedBy': adminId,
@@ -354,6 +370,24 @@ class CourseAccessProvider with ChangeNotifier {
         'approvedBy': adminId,
         'approvedAt': FieldValue.serverTimestamp(),
         'rejectionReason': reason ?? 'Rejected by admin',
+      });
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Admin resets a video back to pending (e.g. if rejected by mistake).
+  Future<String?> resetVideo({
+    required String videoId,
+    required String adminId,
+  }) async {
+    try {
+      await _db.collection('course_videos').doc(videoId).update({
+        'status': VideoStatus.pending.name,
+        'approvedBy': adminId,
+        'approvedAt': FieldValue.serverTimestamp(),
+        'rejectionReason': null,
       });
       return null;
     } catch (e) {

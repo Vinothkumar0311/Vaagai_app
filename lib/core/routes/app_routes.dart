@@ -11,6 +11,8 @@ import 'package:vaagai/view/screens/role_selection_screen.dart';
 import 'package:vaagai/view/screens/student_dashboard_screen.dart';
 import 'package:vaagai/view/screens/staff_dashboard_screen.dart';
 import 'package:vaagai/view/screens/admin_dashboard_screen.dart';
+import 'package:vaagai/view/screens/forgot_password_screen.dart';
+import 'package:vaagai/view/screens/user_management_screen.dart';
 
 class AppRoutes {
   // 🔹 Route Names
@@ -25,6 +27,8 @@ class AppRoutes {
   static const String courseDetail = '/course_detail';
   static const String staff = '/staff';
   static const String documentUpload = '/document_upload';
+  static const String forgotPassword = '/forgot_password';
+  static const String userManagement = '/user_management';
 
   // 🔹 Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -46,6 +50,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const AdminDashboardScreen());
       case dashboard:
         return MaterialPageRoute(builder: (_) => const DashboardScreen());
+      case userManagement:
+        return MaterialPageRoute(builder: (_) => const UserManagementScreen());
       case courseDetail:
         final course = settings.arguments as CourseModel;
         return MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course));
@@ -53,6 +59,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const StaffScreen());
       case documentUpload:
         return MaterialPageRoute(builder: (_) => const DocumentUploadScreen());
+      case forgotPassword:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
       default:
         return MaterialPageRoute(
           builder: (_) =>

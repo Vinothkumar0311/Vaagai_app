@@ -342,17 +342,28 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                             style: TextStyle(color: Colors.grey.shade400)));
                       }
 
+                      final videos = snapshot.data!.docs
+                          .map((d) => CourseVideoModel.fromFirestore(d))
+                          .toList();
+
+                      // Sort in-memory to avoid index requirement
+                      videos.sort((a, b) => (b.createdAt ?? DateTime(0))
+                          .compareTo(a.createdAt ?? DateTime(0)));
+
                       return ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: snapshot.data!.docs.length,
+                        itemCount: videos.length,
                         itemBuilder: (context, index) {
-                          final video = CourseVideoModel.fromFirestore(
-                              snapshot.data!.docs[index]);
+                          final video = videos[index];
                           return _StaffVideoListItem(
                             video: video,
-                            onDelete: () =>
-                                snapshot.data!.docs[index].reference.delete(),
+                            onDelete: () async {
+                              // Find original doc for deletion
+                              final doc = snapshot.data!.docs.firstWhere(
+                                  (d) => d.id == video.id);
+                              await doc.reference.delete();
+                            },
                           );
                         },
                       );
@@ -662,33 +673,83 @@ class _StaffVideoListItem extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(statusIcon, size: 12, color: statusColor),
-              const SizedBox(width: 4),
-              Text(
-                video.status.name.toUpperCase(),
-                style: TextStyle(
-                    fontSize: 10,
-                    color: statusColor,
-                    fontWeight: FontWeight.bold),
-              ),
-              if (video.isDemo) ...
-                [
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4)),
-                    child: const Text('FREE',
-                        style: TextStyle(
-                            fontSize: 9,
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold)),
-                  )
+              Row(
+                children: [
+                  Icon(statusIcon, size: 12, color: statusColor),
+                  const SizedBox(width: 4),
+                  Text(
+                    video.status.name.toUpperCase(),
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: statusColor,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  if (video.isDemo) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(4)),
+                      child: const Text('FREE',
+                          style: TextStyle(
+                              fontSize: 9,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.bold)),
+                    )
+                  ],
                 ],
+              ),
+              if (video.status == VideoStatus.rejected &&
+                  video.rejectionReason != null) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              size: 12, color: Colors.red.shade600),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              video.rejectionReason!,
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.red.shade700),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () => _handleResubmit(context),
+                          icon: const Icon(Icons.refresh_rounded, size: 14),
+                          label: const Text('மீண்டும் சமர்ப்பி (Resubmit)',
+                              style: TextStyle(fontSize: 11)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.blue.shade700,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -709,6 +770,49 @@ class _StaffVideoListItem extends StatelessWidget {
             : const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
       ),
     );
+  }
+
+  Future<void> _handleResubmit(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('மீண்டும் சமர்ப்பிக்கவா?',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text(
+            'இந்த வீடியோவை மீண்டும் நிர்வாகியின் அனுமதிக்காக அனுப்ப வேண்டுமா?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('இல்லை', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('ஆம், அனுப்பு'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final provider = Provider.of<CourseAccessProvider>(context, listen: false);
+      final error = await provider.resetVideo(
+        videoId: video.id,
+        adminId: 'staff-reset',
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? '✅ வீடியோ மீண்டும் சமர்ப்பிக்கப்பட்டது!'),
+            backgroundColor: error == null ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 

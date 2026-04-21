@@ -35,9 +35,9 @@ class CourseProvider with ChangeNotifier {
       QuerySnapshot snapshot = await _firestore
           .collection('courses')
           .where('createdBy', isEqualTo: staffUid)
-          .orderBy('createdAt', descending: true)
           .get();
       _staffCourses = snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
+      _staffCourses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
       debugPrint("Error fetching staff courses: $e");
     } finally {

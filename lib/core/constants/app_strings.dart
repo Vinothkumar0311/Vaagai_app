@@ -2,11 +2,11 @@ class AppStrings {
   static const String appName = "Vaagai";
 
   // Login
-  static const String loginTitle = "உள்நுழைவு";
+  static const String loginTitle = "மாணவர் உள்நுழைவு";
   static const String loginSubtitle = "உங்கள் விவரங்களை உள்ளிடவும்";
-  static const String phoneLabel = "கைபேசி எண் / மின்னஞ்சல்";
-  static const String phoneHint = "9876543210 அல்லது name@email.com";
-  static const String passwordLabel = "கடவுச்சொல்";
+  static const String phoneLabel = "மின்னஞ்சல்";
+  static const String phoneHint = "name@email.com";
+  static const String passwordLabel = "கடவுச்சொல்லை இங்கே உள்ளிடவும்";
   static const String forgotPassword = "மறந்து விட்டதா - இந்த பட்டன் வேலை செய்யவில்லை👆";
   static const String loginButton = "உள்நுழைய";
   static const String noAccount = "உங்களிடம் கணக்கு இல்லையா?";
@@ -23,9 +23,9 @@ class AppStrings {
   static const String whatsappLabel = "வாட்ஸ்அப் எண் (WhatsApp)";
   static const String emailLabel = "மின்னஞ்சல் (Email)";
   static const String idLabel = "அடையாள அட்டை (Aadhar / National ID)";
-  static const String regPasswordLabel = "கடவுச்சொல் (Password)";
-  static const String confirmPasswordLabel = "கடவுச்சொல் உறுதிப்படுத்தவும்";
-  static const String passwordHelper = "உதவி: குறைந்தது 8 எழுத்துகள், ஒரு பெரிய எழுத்து மற்றும் ஒரு எண் இருக்க வேண்டும்.";
+  static const String regPasswordLabel = "கடவுச்சொல்";
+  static const String confirmPasswordLabel = "மீண்டும் கடவுச்சொல்";
+  static const String passwordHelper = "உதவி: குறைந்தது 8 எழுத்துகள், ஒரு பெரிய எழுத்து, ஒரு எண் மற்றும் ஒரு குறியீடு (@, #, \$, %) இருக்க வேண்டும்.";
   static const String registerButton = "பதிவு செய்";
   static const String registerSuccess = "பதிவு வெற்றிகரமாக முடிந்தது! 🎉";
   static const String alreadyHaveAccount = "ஏற்கனவே கணக்கு உள்ளதா? ";
@@ -33,6 +33,7 @@ class AppStrings {
   static const String passwordMinError = "குறைந்தது 8 எழுத்துகள் தேவை";
   static const String passwordCapsError = "ஒரு பெரிய எழுத்து (Caps) தேவை";
   static const String passwordNumError = "ஒரு எண் (Number) தேவை";
+  static const String passwordSymbolError = "குறைந்தது ஒரு குறியீடு (Symbol e.g. @, #, \$, %) தேவை";
   static const String passwordMatchError = "கடவுச்சொல் பொருந்தவில்லை";
 
   // Dashboard

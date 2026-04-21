@@ -311,7 +311,7 @@ class _AdminVideoCard extends StatelessWidget {
                   ),
                 ],
 
-                // Action buttons (only for pending)
+                // Action buttons 
                 if (isPending) ...[
                   const SizedBox(height: 14),
                   const Divider(height: 1),
@@ -338,6 +338,20 @@ class _AdminVideoCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                  ),
+                ] else if (video.status == VideoStatus.rejected) ...[
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: _actionBtn(
+                      label: 'மீண்டும் பரிசீலிக்க (Reset)',
+                      icon: Icons.refresh_rounded,
+                      color: Colors.orange.shade800,
+                      filled: false,
+                      onTap: () => _handleReset(context),
+                    ),
                   ),
                 ],
               ],
@@ -449,6 +463,41 @@ class _AdminVideoCard extends StatelessWidget {
             error == null ? Colors.orange.shade700 : Colors.red.shade700,
         content: Text(
           error == null ? '❌ வீடியோ நிராகரிக்கப்பட்டது' : '❌ $error',
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleReset(BuildContext context) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => const ConfirmActionDialog(
+        title: 'வீடியோ மறுபரிசீலனை',
+        subtitle: 'இந்த வீடியோவை மீண்டும் நிலுவையில் (Pending) மாற்ற வேண்டுமா?',
+        confirmLabel: 'ஆம், மாற்று',
+        confirmColor: Colors.orange,
+      ),
+    );
+    if (result == null || !context.mounted) return;
+
+    final admin =
+        Provider.of<AuthProvider>(context, listen: false).userModel;
+    final provider =
+        Provider.of<CourseAccessProvider>(context, listen: false);
+
+    final error = await provider.resetVideo(
+      videoId: video.id,
+      adminId: admin?.uid ?? 'admin',
+    );
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor:
+            error == null ? Colors.blue.shade700 : Colors.red.shade700,
+        content: Text(
+          error == null ? '🔄 வீடியோ நிலுவையில் மாற்றப்பட்டது' : '❌ $error',
           style: const TextStyle(color: Colors.white),
         ),
       ),

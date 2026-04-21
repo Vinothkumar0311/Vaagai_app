@@ -10,6 +10,9 @@ class UploadedDocument {
   final String? imageName;
   final String? pdfName;
 
+  final String? createdBy;
+  final DateTime? createdAt;
+
   UploadedDocument({
     required this.id,
     required this.title,
@@ -19,6 +22,8 @@ class UploadedDocument {
     this.pdfUrl,
     this.imageName,
     this.pdfName,
+    this.createdBy,
+    this.createdAt,
   });
 
   factory UploadedDocument.fromFirestore(DocumentSnapshot doc) {
@@ -32,6 +37,8 @@ class UploadedDocument {
       pdfUrl: data['pdfUrl'],
       imageName: data['imageName'],
       pdfName: data['pdfName'],
+      createdBy: data['createdBy'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 }

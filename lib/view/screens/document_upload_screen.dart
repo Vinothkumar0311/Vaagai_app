@@ -8,6 +8,8 @@ import '../../core/utils/drive_utils.dart';
 import '../../services/drive_upload_service.dart';
 import 'staff_course_detail_screen.dart';
 import '../../core/models/uploaded_document.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -20,6 +22,8 @@ class DocumentUploadScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const Color primaryGreen = Color(0xFF1B5E20);
+
+    final user = Provider.of<AuthProvider>(context, listen: false).userModel;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -45,7 +49,7 @@ class DocumentUploadScreen extends StatelessWidget {
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('course_uploads')
-              .orderBy('createdAt', descending: true)
+              .where('createdBy', isEqualTo: user?.uid)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -59,6 +63,10 @@ class DocumentUploadScreen extends StatelessWidget {
             final docs = snapshot.data!.docs
                 .map((d) => UploadedDocument.fromFirestore(d))
                 .toList();
+
+            // Sort in-memory to avoid index requirement
+            docs.sort((a, b) => (b.createdAt ?? DateTime(0))
+                .compareTo(a.createdAt ?? DateTime(0)));
 
             return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -441,6 +449,8 @@ class _UploadFormModalState extends State<UploadFormModal> {
           .where((t) => t.isNotEmpty)
           .join('\n');
 
+      final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+
       await FirebaseFirestore.instance.collection('course_uploads').add({
         'title': _degreeController.text.trim(),
         'objective': _objectiveController.text.trim(),
@@ -449,6 +459,8 @@ class _UploadFormModalState extends State<UploadFormModal> {
         'pdfUrl': pdfUrl,
         'imageName': _imageName,
         'pdfName': _pdfName,
+        'createdBy': user?.uid,
+        'staffName': user?.name, // Added staffName as requested
         'createdAt': FieldValue.serverTimestamp(),
       });
 

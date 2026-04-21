@@ -138,4 +138,27 @@ class AuthProvider with ChangeNotifier {
       'role': newRole,
     });
   }
+
+  Future<String?> resetPassword(String email) async {
+    _isLoading = true;
+    notifyListeners();
+    debugPrint("Attempting password reset for: $email");
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      debugPrint("Password reset email sent successfully from app's perspective");
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Firebase Auth Error resetting password: ${e.code} - ${e.message}");
+      if (e.code == 'user-not-found') {
+        return 'இந்த மின்னஞ்சல் முகவரியில் கணக்கு எதுவும் இல்லை.';
+      }
+      return e.message;
+    } catch (e) {
+      debugPrint("Generic Error resetting password: $e");
+      return e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
