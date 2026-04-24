@@ -6,8 +6,8 @@ class DriveUtils {
   static String? getDirectViewUrl(String? originalUrl) {
     if (originalUrl == null || originalUrl.isEmpty) return null;
     
-    // If it's already a direct link, keep it
-    if (originalUrl.contains('drive.google.com/uc')) return originalUrl;
+    // If it's already a proxied link, keep it
+    if (originalUrl.contains('/api/drive-image')) return originalUrl;
     
     String? fileId;
 
@@ -23,11 +23,15 @@ class DriveUtils {
     }
 
     if (fileId != null) {
-      return 'https://drive.google.com/uc?export=view&id=$fileId';
+      // Use the Next.js API proxy to avoid CORS and Google restrictions
+      // NOTE: For absolute URLs in mobile, you should prepend your web domain here.
+      // e.g. 'https://your-vaagai-web.vercel.app/api/drive-image?id=$fileId'
+      return 'https://vaagai-mandram.vercel.app/api/drive-image?id=$fileId';
     }
 
     return originalUrl;
   }
+
 
   /// Transforms a Google Drive link into a direct download URL.
   static String? getDirectDownloadUrl(String? originalUrl) {

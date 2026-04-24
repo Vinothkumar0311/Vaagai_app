@@ -52,6 +52,7 @@ dependencies:
   youtube_player_iframe: ^5.2.2
   youtube_player_flutter: ^9.1.0
   shared_preferences: ^2.5.5
+  firebase_app_check: ^0.3.2+10
 
 dev_dependencies:
   flutter_test:

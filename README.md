@@ -47,24 +47,47 @@ The project utilizes the **Provider** pattern customized into a clean, scalable 
 
 ```mermaid
 graph TD
-    A[Splash Screen] --> B{Role-Based Auth}
-    B -->|Admin/Staff Login| C[Management Dashboard]
-    B -->|Student Login| D[Student Dashboard]
+    %% Authentication & Onboarding
+    A[Splash Screen] --> B{Authentication System}
+    B -->|New User| B1[Registration]
+    B -->|Existing User| B2[Login]
+    B -->|Forgot Password| B3[Password Recovery Flow]
     
-    C --> C1[Course Creation]
-    C1 --> C2[Chunked File Upload to GDrive]
-    C1 --> C3[Add YouTube Content]
-    C3 --> C4{Set Media as Free/Premium}
+    %% Role Evaluation
+    B2 --> C{Role-Based Routing}
+    C -->|Admin| D[Admin Dashboard]
+    C -->|Staff| E[Staff Dashboard]
+    C -->|Student| F[Student Dashboard]
+
+    %% Admin Flow
+    D --> D1[User Management Module]
+    D1 --> D1a[Search, Filter & Sort Users]
+    D1 --> D1b[Update Access & Roles]
+    D --> D2[Event Management]
+    D2 --> D2a[Create/Edit Events]
+    D2 --> D2b[Drive File Upload & Sync]
+    D --> D3[Payment Management]
+    D3 --> D3a[Verify Receipts & Approve Premium]
+
+    %% Staff Flow
+    E --> E1[Course Content Management]
+    E1 --> E1a[Course Creation & Metadata]
+    E1 --> E1b[Chunked PDF/Syllabus Upload]
+    E --> E2[Video Integration]
+    E2 --> E2a[YouTube URL Parsing & Linking]
+    E2 --> E2b[Free vs Premium Gating]
+    E --> E3[Content Moderation]
+    E3 --> E3a[Admin/Staff Approval Workflow]
+
+    %% Student Flow
+    F --> F1[Unified Learning Hub]
+    F1 --> F2[Course Details & Status]
+    F2 --> F3[Syncfusion Native PDF Viewer]
+    F2 --> F4{Media Access Check}
     
-    D --> D1[Course Catalog]
-    D1 --> D2[Course Details Page]
-    D2 --> D3[Native PDF Viewer]
-    D2 --> D4{Watch Video Content}
-    D4 -->|Demo/Unlocked| D5[Smart Cross-Platform YT Player]
-    D4 -->|Premium Locked| D6[Payment Registration Modal]
-    
-    D6 -->|Submit Receipt| C5[Admin Payment Verification]
-    C5 -->|Approve| D2
+    F4 -->|Demo / Unlocked| F5[Smart Cross-Platform YT Player]
+    F4 -->|Premium Locked| F6[Payment Registration / Modal]
+    F6 -->|Submit Receipt| D3
 ```
 
 ---
