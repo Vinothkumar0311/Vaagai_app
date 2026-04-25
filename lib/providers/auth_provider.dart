@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../core/models/app_models.dart';
 import '../core/utils/session_manager.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -25,8 +26,7 @@ class AuthProvider with ChangeNotifier {
     final user = _auth.currentUser;
     if (user != null) {
       await fetchUserDetails(user.uid);
-      // Restore session on app startup if Firebase Auth user exists
-      // This handles the case when app cache was cleared but Firebase Auth persists
+      await NotificationService.saveTokenForUser(user.uid); // Save/refresh token in sub-collection
       await SessionManager.saveSession();
     }
   }
@@ -56,6 +56,7 @@ class AuthProvider with ChangeNotifier {
         password: password,
       );
       await fetchUserDetails(result.user!.uid);
+      await NotificationService.saveTokenForUser(result.user!.uid); // Save token in sub-collection
 
       String? token;
       try {
@@ -65,7 +66,9 @@ class AuthProvider with ChangeNotifier {
 
       return null; // Success
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+      if (e.code == 'user-not-found' ||
+          e.code == 'wrong-password' ||
+          e.code == 'invalid-credential') {
         return 'தாங்கள் உள்ளிட்ட கடவுச்சொல் தவறானது . ❌மீண்டும் சரியான கடவுச்சொல்லை இட்டு முயற்சிக்கவும்';
       }
       return e.message;
@@ -127,6 +130,11 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Delete THIS device's token before signing out
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      await NotificationService.deleteTokenForUser(uid);
+    }
     await _auth.signOut();
     _userModel = null;
     await SessionManager.clearSession();
@@ -145,10 +153,12 @@ class AuthProvider with ChangeNotifier {
     debugPrint("Attempting password reset for: $email");
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      debugPrint("Password reset email sent successfully from app's perspective");
+      debugPrint(
+          "Password reset email sent successfully from app's perspective");
       return null; // Success
     } on FirebaseAuthException catch (e) {
-      debugPrint("Firebase Auth Error resetting password: ${e.code} - ${e.message}");
+      debugPrint(
+          "Firebase Auth Error resetting password: ${e.code} - ${e.message}");
       if (e.code == 'user-not-found') {
         return 'இந்த மின்னஞ்சல் முகவரியில் கணக்கு எதுவும் இல்லை.';
       }
@@ -160,5 +170,12 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Kept for backward compatibility – delegates to NotificationService
+  Future<void> updateFCMToken() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await NotificationService.saveTokenForUser(user.uid);
   }
 }

@@ -23,10 +23,8 @@ class DriveUtils {
     }
 
     if (fileId != null) {
-      // Use the Next.js API proxy to avoid CORS and Google restrictions
-      // NOTE: For absolute URLs in mobile, you should prepend your web domain here.
-      // e.g. 'https://your-vaagai-web.vercel.app/api/drive-image?id=$fileId'
-      return 'https://vaagai-mandram.vercel.app/api/drive-image?id=$fileId';
+      // Use Google's native thumbnail service for reliable image rendering
+      return 'https://drive.google.com/thumbnail?id=$fileId&sz=w400';
     }
 
     return originalUrl;

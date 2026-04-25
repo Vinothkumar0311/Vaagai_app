@@ -10,12 +10,19 @@ class CourseContentDetailScreen extends StatelessWidget {
   final UploadedDocument doc;
   const CourseContentDetailScreen({super.key, required this.doc});
 
-  void _handleVideoTap(BuildContext context, String title, String url, bool isDemo) {
+  void _handleVideoTap(BuildContext context, String title, String url, bool isDemo, String videoDocId) {
     // Navigating directly to player for all content as per request
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => YouTubePlayerScreen(videoUrl: url, title: title),
+        builder: (context) => YouTubePlayerScreen(
+          videoUrl: url, 
+          title: title,
+          courseId: doc.id,
+          courseName: doc.title,
+          courseImage: DriveUtils.getDirectViewUrl(doc.imageUrl),
+          videoDocId: videoDocId,
+        ),
       ),
     );
   }
@@ -254,7 +261,7 @@ class CourseContentDetailScreen extends StatelessWidget {
                                 const SizedBox(width: 8),
                                 // WATCH Button
                                 ElevatedButton(
-                                  onPressed: () => _handleVideoTap(context, title, url, isDemo),
+                                  onPressed: () => _handleVideoTap(context, title, url, isDemo, snapshot.data!.docs[index].id),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1B5E20),
                                     foregroundColor: Colors.white,

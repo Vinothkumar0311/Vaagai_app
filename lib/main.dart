@@ -1,13 +1,17 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vaagai/firebase_options.dart';
 import 'package:vaagai/providers/auth_provider.dart';
 import 'package:vaagai/providers/course_provider.dart';
 import 'package:vaagai/providers/course_access_provider.dart';
+import 'package:vaagai/providers/doubt_provider.dart';
+import 'package:vaagai/providers/notification_provider.dart';
+import 'package:vaagai/services/notification_service.dart';
 import 'core/routes/app_routes.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,18 +20,25 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  await FirebaseAppCheck.instance.activate(
-    androidProvider: kDebugMode 
-        ? AndroidProvider.debug 
-        : AndroidProvider.playIntegrity,
-  );
-  
+  // Register background handler BEFORE runApp (required for low-end devices)
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  await NotificationService.initialize(navigatorKey);
+
+  // Temporarily disabling App Check for debugging notifications
+  // await FirebaseAppCheck.instance.activate(
+  //   androidProvider:
+  //       kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+  // );
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CourseProvider()),
         ChangeNotifierProvider(create: (_) => CourseAccessProvider()),
+        ChangeNotifierProvider(create: (_) => DoubtProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: const MyApp(),
     ),
@@ -41,6 +52,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorKey: navigatorKey,
       title: 'Vaagai',
       initialRoute: AppRoutes.splash,
       onGenerateRoute: AppRoutes.generateRoute,

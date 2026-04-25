@@ -12,6 +12,8 @@ import 'course_content_detail_screen.dart';
 import 'payment_registration_screen.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/dashboard_sections.dart';
+import 'student_doubts_screen.dart';
+import '../../core/routes/app_routes.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -48,8 +50,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           children: [
             _buildHomeTab(user),
             _buildCoursesTab(),
-            _buildPlaceholderTab(AppStrings.notificationsTab, Icons.notifications_none_rounded),
-            _buildPlaceholderTab(AppStrings.profileTab, Icons.person_outline_rounded),
+            const StudentDoubtsScreen(),
+            _buildPlaceholderTab(
+                AppStrings.profileTab, Icons.person_outline_rounded),
           ],
         ),
       ),
@@ -69,11 +72,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           elevation: 0,
           backgroundColor: _primaryGreen,
           flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            titlePadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             title: const Text(
               "வாகை முகப்பு",
               style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white),
             ),
             background: Stack(
               children: [
@@ -96,7 +102,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     child: Image.asset(
                       'assets/images/logo.png',
                       width: 200,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.school, size: 200),
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.school, size: 200),
                     ),
                   ),
                 ),
@@ -105,9 +112,16 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           ),
           actions: [
             IconButton(
+              icon: const Icon(Icons.forum, color: Colors.white),
+              tooltip: 'My Doubts',
+              onPressed: () =>
+                  Navigator.pushNamed(context, AppRoutes.studentDoubts),
+            ),
+            IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               onPressed: () async {
-                final confirm = await DialogUtils.showLogoutConfirmation(context);
+                final confirm =
+                    await DialogUtils.showLogoutConfirmation(context);
                 if (confirm && context.mounted) {
                   final authProvider =
                       Provider.of<AuthProvider>(context, listen: false);
@@ -141,7 +155,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 CircleAvatar(
                   radius: 32,
                   backgroundColor: _primaryGreen.withOpacity(0.1),
-                  child: const Icon(Icons.person, color: _primaryGreen, size: 36),
+                  child:
+                      const Icon(Icons.person, color: _primaryGreen, size: 36),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
@@ -198,7 +213,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverAppBar(
-          title: const Text(AppStrings.coursesTab, style: TextStyle(fontWeight: FontWeight.bold, color: _primaryGreen)),
+          title: const Text(AppStrings.coursesTab,
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: _primaryGreen)),
           backgroundColor: Colors.white,
           pinned: true,
           elevation: 0,
@@ -225,7 +242,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               return const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator(color: _primaryGreen)),
+                  child: Center(
+                      child: CircularProgressIndicator(color: _primaryGreen)),
                 ),
               );
             }
@@ -239,7 +257,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
             return Consumer<CourseAccessProvider>(
               builder: (context, accessProvider, _) {
-                final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+                final user =
+                    Provider.of<AuthProvider>(context, listen: false).userModel;
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
@@ -278,7 +297,11 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         children: [
           Icon(icon, size: 80, color: _primaryGreen.withOpacity(0.2)),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey)),
         ],
       ),
     );
@@ -321,7 +344,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         children: [
           _navItem(Icons.home_rounded, AppStrings.homeTab, 0),
           _navItem(Icons.menu_book_rounded, AppStrings.coursesTab, 1),
-          _navItem(Icons.notifications_none_rounded, AppStrings.notificationsTab, 2),
+          _navItem(
+              Icons.notifications_none_rounded, AppStrings.notificationsTab, 2),
           _navItem(Icons.person_outline_rounded, AppStrings.profileTab, 3),
         ],
       ),
@@ -338,14 +362,17 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: active ? BoxDecoration(
-          color: _primaryGreen.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-        ) : null,
+        decoration: active
+            ? BoxDecoration(
+                color: _primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              )
+            : null,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: active ? _primaryGreen : Colors.grey.shade400, size: 24),
+            Icon(icon,
+                color: active ? _primaryGreen : Colors.grey.shade400, size: 24),
             const SizedBox(height: 4),
             Text(label,
                 style: TextStyle(
@@ -412,7 +439,7 @@ class _CourseCard extends StatelessWidget {
                                 child: CircularProgressIndicator());
                           },
                           errorBuilder: (_, __, ___) => const Center(
-                               child: Icon(Icons.school_rounded,
+                              child: Icon(Icons.school_rounded,
                                   size: 48, color: Color(0xFF1B5E20))),
                         )
                       : const Center(
@@ -424,7 +451,8 @@ class _CourseCard extends StatelessWidget {
                   left: 0,
                   right: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,

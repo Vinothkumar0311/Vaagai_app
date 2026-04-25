@@ -8,6 +8,7 @@ class UserModel {
   final String? phone;
   final String? whatsapp;
   final String? aadharNumber;
+  final String? fcmToken;
 
   UserModel({
     required this.uid,
@@ -17,6 +18,7 @@ class UserModel {
     this.phone,
     this.whatsapp,
     this.aadharNumber,
+    this.fcmToken,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -29,6 +31,7 @@ class UserModel {
       phone: data['phone'],
       whatsapp: data['whatsapp'],
       aadharNumber: data['aadhar_number'],
+      fcmToken: data['fcmToken'],
     );
   }
 
@@ -41,6 +44,7 @@ class UserModel {
       'phone': phone,
       'whatsapp': whatsapp,
       'aadhar_number': aadharNumber,
+      'fcmToken': fcmToken,
     };
   }
 }
@@ -51,6 +55,7 @@ class CourseModel {
   final String description;
   final String category;
   final String createdBy;
+  final String? imageUrl;
   final DateTime createdAt;
 
   CourseModel({
@@ -59,6 +64,7 @@ class CourseModel {
     required this.description,
     required this.category,
     required this.createdBy,
+    this.imageUrl,
     required this.createdAt,
   });
 
@@ -70,6 +76,7 @@ class CourseModel {
       description: data['description'] ?? '',
       category: data['category'] ?? '',
       createdBy: data['createdBy'] ?? '',
+      imageUrl: data['imageUrl'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -80,6 +87,7 @@ class CourseModel {
       'description': description,
       'category': category,
       'createdBy': createdBy,
+      'imageUrl': imageUrl,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }

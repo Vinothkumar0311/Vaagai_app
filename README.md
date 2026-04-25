@@ -29,6 +29,13 @@
 - **Progressive Discovery**: Browse professional course cards with clear status indicators, locked/unlocked states, and visually engaging demo previews.
 - **Unified Hub**: Access all materials, videos, and instructor info in one centralized, glassmorphism-styled dashboard.
 
+### 🧩 **Course Doubt Messaging System (Async)**
+A robust, asynchronous communication feature coupling students and instructors without the overhead of real-time chat.
+- **Contextual Ask Flow**: Students can click "Ask Doubt" directly inside the Smart YT Player. The system automatically captures the video timestamp, `course_id`, and `video_id`, packaging it into a message thread.
+- **My Doubts Inbox**: A dedicated hub where students view pending/replied doubts. Clicking a timestamp directly seeks to that exact moment in the video.
+- **Staff Doubt Inbox**: Instructors get a focused inbox filtered by their specific courses. They can review contextual timestamps, reply asynchronously, and mark threads as resolved.
+- **Threaded Data Model**: Supported by a scalable schema (`Doubts` -> `DoubtMessages`) for lightweight, comment-style threading optimized with simple push/email notifications.
+
 ---
 
 ### 🛠️ **System Architecture & Tech Stack**
@@ -88,6 +95,22 @@ graph TD
     F4 -->|Demo / Unlocked| F5[Smart Cross-Platform YT Player]
     F4 -->|Premium Locked| F6[Payment Registration / Modal]
     F6 -->|Submit Receipt| D3
+
+    %% 🧩 Async Doubt System
+    F5 --> G1[Ask Doubt Button]
+    G1 --> G2[Open Message Modal]
+    G2 --> G3[Capture Timestamp & Message]
+    G3 --> G4[Submit Doubt]
+    G4 --> G5[(Stored as Message Thread)]
+    
+    F --> F7[Student: My Doubts Inbox]
+    F7 --> F7a[View Replies & Click Timestamp to Seek]
+    
+    E --> E4[Staff: Doubt Inbox]
+    E4 --> E4a[Review & Reply Async]
+    
+    G5 -.->|Notifies| E4
+    E4a -.->|Notifies| F7
 ```
 
 ---

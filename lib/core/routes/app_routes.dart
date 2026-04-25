@@ -13,6 +13,11 @@ import 'package:vaagai/view/screens/staff_dashboard_screen.dart';
 import 'package:vaagai/view/screens/admin_dashboard_screen.dart';
 import 'package:vaagai/view/screens/forgot_password_screen.dart';
 import 'package:vaagai/view/screens/user_management_screen.dart';
+import 'package:vaagai/view/screens/student_doubts_screen.dart';
+import 'package:vaagai/view/screens/staff_doubts_screen.dart';
+import 'package:vaagai/view/screens/doubt_chat_screen.dart';
+import 'package:vaagai/view/screens/staff_notification_inbox_screen.dart';
+import 'package:vaagai/core/models/doubt_model.dart';
 
 class AppRoutes {
   // 🔹 Route Names
@@ -29,6 +34,10 @@ class AppRoutes {
   static const String documentUpload = '/document_upload';
   static const String forgotPassword = '/forgot_password';
   static const String userManagement = '/user_management';
+  static const String studentDoubts = '/student_doubts';
+  static const String staffDoubts = '/staff_doubts';
+  static const String doubtChat = '/doubt_chat';
+  static const String staffNotificationInbox = '/staff_notification_inbox';
 
   // 🔹 Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -43,7 +52,8 @@ class AppRoutes {
       case register:
         return MaterialPageRoute(builder: (_) => const RegisterScreen());
       case studentDashboard:
-        return MaterialPageRoute(builder: (_) => const StudentDashboardScreen());
+        return MaterialPageRoute(
+            builder: (_) => const StudentDashboardScreen());
       case staffDashboard:
         return MaterialPageRoute(builder: (_) => const StaffDashboardScreen());
       case adminDashboard:
@@ -54,13 +64,24 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const UserManagementScreen());
       case courseDetail:
         final course = settings.arguments as CourseModel;
-        return MaterialPageRoute(builder: (_) => CourseDetailScreen(course: course));
+        return MaterialPageRoute(
+            builder: (_) => CourseDetailScreen(course: course));
       case staff:
         return MaterialPageRoute(builder: (_) => const StaffScreen());
       case documentUpload:
         return MaterialPageRoute(builder: (_) => const DocumentUploadScreen());
       case forgotPassword:
         return MaterialPageRoute(builder: (_) => const ForgotPasswordScreen());
+      case studentDoubts:
+        return MaterialPageRoute(builder: (_) => const StudentDoubtsScreen());
+      case staffDoubts:
+        return MaterialPageRoute(builder: (_) => const StaffDoubtsScreen());
+      case doubtChat:
+        final doubt = settings.arguments as DoubtModel;
+        return MaterialPageRoute(builder: (_) => DoubtChatScreen(doubt: doubt));
+      case staffNotificationInbox:
+        return MaterialPageRoute(
+            builder: (_) => const StaffNotificationInboxScreen());
       default:
         return MaterialPageRoute(
           builder: (_) =>

@@ -98,7 +98,6 @@ class CourseAccessProvider with ChangeNotifier {
     return _myAccessRecords.any(
       (r) =>
           r.courseId == courseId &&
-          r.accessEnabled &&
           r.paymentStatus == PaymentStatus.approved,
     );
   }

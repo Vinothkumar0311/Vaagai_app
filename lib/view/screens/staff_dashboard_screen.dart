@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/models/app_models.dart';
@@ -39,6 +40,54 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
+          // Real-time notification bell with badge
+          StreamBuilder<int>(
+            stream: Provider.of<NotificationProvider>(context, listen: false)
+                .unreadCountStream(
+              Provider.of<AuthProvider>(context, listen: false).userModel?.uid ?? '',
+            ),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_rounded, color: Colors.white),
+                    tooltip: 'Notifications',
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.staffNotificationInbox),
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 6,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.forum, color: Colors.white),
+            tooltip: 'Doubt Inbox',
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.staffDoubts),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
