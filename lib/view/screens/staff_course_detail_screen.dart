@@ -7,6 +7,7 @@ import '../../core/models/course_video_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
 import '../widgets/course_widgets.dart';
+import '../widgets/course_analytics_card.dart';
 import 'youtube_player_screen.dart';
 import 'pdf_viewer_screen.dart';
 
@@ -33,6 +34,7 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
   
   bool _showUpdateSection = false;
   bool _showAddVideoSection = false;
+  bool _showAnalyticsSection = false;
   
   bool _isUploadingVideo = false;
 
@@ -272,11 +274,12 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                           onPressed: () => setState(() {
                             _showUpdateSection = !_showUpdateSection;
                             _showAddVideoSection = false;
+                            _showAnalyticsSection = false;
                           }),
                           isActive: _showUpdateSection,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _actionButton(
                           label: "ADD\nVIDEOS",
@@ -285,8 +288,23 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                           onPressed: () => setState(() {
                             _showAddVideoSection = !_showAddVideoSection;
                             _showUpdateSection = false;
+                            _showAnalyticsSection = false;
                           }),
                           isActive: _showAddVideoSection,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _actionButton(
+                          label: "VIEW\nANALYTICS",
+                          icon: Icons.analytics_rounded,
+                          color: Colors.orange.shade800,
+                          onPressed: () => setState(() {
+                            _showAnalyticsSection = !_showAnalyticsSection;
+                            _showUpdateSection = false;
+                            _showAddVideoSection = false;
+                          }),
+                          isActive: _showAnalyticsSection,
                         ),
                       ),
                     ],
@@ -318,6 +336,9 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
                       weeklyUploadsUsed: _weeklyUploadCount,
                       maxUploads: _maxWeeklyUploads,
                     ),
+                  
+                  if (_showAnalyticsSection)
+                    CourseAnalyticsCard(courseId: widget.doc.id),
 
                   const SizedBox(height: 40),
 

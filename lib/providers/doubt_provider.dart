@@ -35,7 +35,14 @@ class DoubtProvider with ChangeNotifier {
         .snapshots()
         .map((snapshot) {
       final list = snapshot.docs.map((doc) => DoubtModel.fromFirestore(doc)).toList();
-      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      list.sort((a, b) {
+        final aTime = a.createdAt;
+        final bTime = b.createdAt;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return -1;
+        if (bTime == null) return 1;
+        return bTime.compareTo(aTime);
+      });
       return list;
     });
   }

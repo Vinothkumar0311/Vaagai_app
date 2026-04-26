@@ -4,123 +4,349 @@
   <img src="https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white" alt="Flutter">
   <img src="https://img.shields.io/badge/Firebase-%23039BE5.svg?style=for-the-badge&logo=firebase" alt="Firebase">
   <img src="https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
+  <img src="https://img.shields.io/badge/Provider-State_Management-blueviolet?style=for-the-badge" alt="Provider">
   <img src="https://img.shields.io/badge/Platform-Web_|_Android_|_iOS-green?style=for-the-badge" alt="Platforms">
 </div>
 
 ---
 
-### 🔥 **Overview**
-**Vaagai** is a premium, state-of-the-art educational application designed to bridge the gap between quality content creation and immersive student learning. Built with a focus on cross-platform high-performance architecture and modern design aesthetics, Vaagai provides a seamless platform for academy administrators, staff, and eager learners.
+## 🔥 Overview
+
+**Vaagai** is a premium cross-platform educational application built with Flutter + Firebase. It enables staff to create and manage video-based courses, and students to watch lessons, track progress, and interact with instructors through an async doubt system.
+
+The architecture uses the **Provider** pattern for state management, **Firestore** as the real-time backend, and a strict separation between UI views, providers, services, and data models.
 
 ---
 
-### 🎨 **Key Features & Capabilities**
+## 🗂️ Project Structure
 
-#### 👨‍🏫 **For Staff & Admins (Management Module)**
-- **Role-Based Access Control**: Secure login flows specifically tailored for Students, Staff, and Admins.
-- **Dynamic Course Management**: Real-time updates for titles, descriptions, and instructors via an intuitive CMS.
-- **Advanced Document Uploads**: Features a custom-built Google Apps Script proxy that bypasses traditional Google Drive POST limits, allowing for chunked uploads of large syllabus PDFs and high-res course images directly to organization drives.
-- **Video Strategy**: Effortlessly add YouTube content with full URL-agnostic parsing (supports mobile, shorts, and standard links).
-- **Payment & Content Gating**: Admins can verify offline payments/receipts to safely unlock Premium course content for specific student accounts.
-
-#### 🎓 **For Students**
-- **Adaptive In-App Theater**: Watch YouTube lessons natively. The app dynamically switches between `youtube_player_iframe` for the Web and `youtube_player_flutter` (native WebView bindings) on Mobile for an unbreakable, error-free playback experience.
-- **Native PDF Rendering**: High-fidelity PDF document viewer built directly into the dashboard using Syncfusion.
-- **Progressive Discovery**: Browse professional course cards with clear status indicators, locked/unlocked states, and visually engaging demo previews.
-- **Unified Hub**: Access all materials, videos, and instructor info in one centralized, glassmorphism-styled dashboard.
-
-### 🧩 **Course Doubt Messaging System (Async)**
-A robust, asynchronous communication feature coupling students and instructors without the overhead of real-time chat.
-- **Contextual Ask Flow**: Students can click "Ask Doubt" directly inside the Smart YT Player. The system automatically captures the video timestamp, `course_id`, and `video_id`, packaging it into a message thread.
-- **My Doubts Inbox**: A dedicated hub where students view pending/replied doubts. Clicking a timestamp directly seeks to that exact moment in the video.
-- **Staff Doubt Inbox**: Instructors get a focused inbox filtered by their specific courses. They can review contextual timestamps, reply asynchronously, and mark threads as resolved.
-- **Threaded Data Model**: Supported by a scalable schema (`Doubts` -> `DoubtMessages`) for lightweight, comment-style threading optimized with simple push/email notifications.
-
----
-
-### 🛠️ **System Architecture & Tech Stack**
-The project utilizes the **Provider** pattern customized into a clean, scalable architecture separating UI views, internal services, and state models.
-
-- **Frontend/UI**: Flutter (Material 3) with custom Glassmorphism components.
-- **Backend & State**: Firebase (Firestore, Authentication) serving as the primary NoSQL datastore and real-time state synchronizer.
-- **Storage/File Delivery**: 
-  - **DriveUtils Engine**: A centralized URL-transformer that takes raw Drive IDs or obscure drive links and converts them on-the-fly into direct `uc?export=download` and `uc?export=view` endpoints. 
-  - **Proxy Server**: Google Apps Script acts as the intermediary chunked-upload server.
-- **Media Engines**: `youtube_player_flutter` (Mobile), `youtube_player_iframe` (Web), `syncfusion_flutter_pdfviewer` (Documents).
-
----
-
-### 📐 **Application Flow**
-
-```mermaid
-graph TD
-    %% Authentication & Onboarding
-    A[Splash Screen] --> B{Authentication System}
-    B -->|New User| B1[Registration]
-    B -->|Existing User| B2[Login]
-    B -->|Forgot Password| B3[Password Recovery Flow]
-    
-    %% Role Evaluation
-    B2 --> C{Role-Based Routing}
-    C -->|Admin| D[Admin Dashboard]
-    C -->|Staff| E[Staff Dashboard]
-    C -->|Student| F[Student Dashboard]
-
-    %% Admin Flow
-    D --> D1[User Management Module]
-    D1 --> D1a[Search, Filter & Sort Users]
-    D1 --> D1b[Update Access & Roles]
-    D --> D2[Event Management]
-    D2 --> D2a[Create/Edit Events]
-    D2 --> D2b[Drive File Upload & Sync]
-    D --> D3[Payment Management]
-    D3 --> D3a[Verify Receipts & Approve Premium]
-
-    %% Staff Flow
-    E --> E1[Course Content Management]
-    E1 --> E1a[Course Creation & Metadata]
-    E1 --> E1b[Chunked PDF/Syllabus Upload]
-    E --> E2[Video Integration]
-    E2 --> E2a[YouTube URL Parsing & Linking]
-    E2 --> E2b[Free vs Premium Gating]
-    E --> E3[Content Moderation]
-    E3 --> E3a[Admin/Staff Approval Workflow]
-
-    %% Student Flow
-    F --> F1[Unified Learning Hub]
-    F1 --> F2[Course Details & Status]
-    F2 --> F3[Syncfusion Native PDF Viewer]
-    F2 --> F4{Media Access Check}
-    
-    F4 -->|Demo / Unlocked| F5[Smart Cross-Platform YT Player]
-    F4 -->|Premium Locked| F6[Payment Registration / Modal]
-    F6 -->|Submit Receipt| D3
-
-    %% 🧩 Async Doubt System
-    F5 --> G1[Ask Doubt Button]
-    G1 --> G2[Open Message Modal]
-    G2 --> G3[Capture Timestamp & Message]
-    G3 --> G4[Submit Doubt]
-    G4 --> G5[(Stored as Message Thread)]
-    
-    F --> F7[Student: My Doubts Inbox]
-    F7 --> F7a[View Replies & Click Timestamp to Seek]
-    
-    E --> E4[Staff: Doubt Inbox]
-    E4 --> E4a[Review & Reply Async]
-    
-    G5 -.->|Notifies| E4
-    E4a -.->|Notifies| F7
+```
+lib/
+├── core/
+│   ├── constants/          # App strings, colors, theme tokens
+│   ├── models/             # Pure data models (Firestore ↔ Dart)
+│   │   ├── course_progress_model.dart
+│   │   ├── doubt_model.dart
+│   │   └── uploaded_document.dart
+│   └── utils/
+│       └── drive_utils.dart   # Google Drive URL transformer
+│
+├── providers/              # All ChangeNotifier providers (state layer)
+│   ├── auth_provider.dart
+│   ├── course_access_provider.dart
+│   ├── course_provider.dart
+│   ├── doubt_provider.dart
+│   ├── notification_provider.dart
+│   └── progress_provider.dart
+│
+├── services/
+│   ├── notification_service.dart   # FCM push notification dispatcher
+│   └── ...
+│
+├── view/
+│   ├── screens/            # All UI screens (one per feature)
+│   └── widgets/            # Reusable UI components
+│
+├── firebase_options.dart
+├── main.dart
+└── splash_screen.dart
 ```
 
 ---
 
-### 🚀 **Installation & Local Setup**
+## 🧩 Firestore Data Structure
+
+### `users` collection
+```
+users/{uid}
+  ├── name: String
+  ├── email: String
+  ├── role: "student" | "staff" | "admin"
+  ├── fcmToken: String          # For push notifications
+  └── courses: List<String>     # Unlocked course IDs
+```
+
+### `course_uploads` collection
+```
+course_uploads/{courseDocId}
+  ├── title: String
+  ├── objective: String
+  ├── trainers: String
+  ├── imageUrl: String          # Google Drive file URL
+  ├── pdfUrl: String?           # Optional syllabus
+  ├── createdBy: String         # Staff UID (used for doubt notifications)
+  └── status: "approved" | "pending"
+```
+
+### `course_videos` collection
+```
+course_videos/{videoDocId}
+  ├── courseDocId: String       # FK → course_uploads
+  ├── title: String
+  ├── youtubeUrl: String
+  ├── isDemo: Boolean
+  ├── status: "approved" | "pending"
+  └── createdAt: Timestamp      # CRITICAL: Used for chronological sort order
+```
+
+> ⚠️ **IMPORTANT**: `createdAt` is the **only** source of truth for video order.
+> Always sort `course_videos` by `createdAt` ascending before indexing.
+> **Never** use the raw Firestore snapshot order (it is non-deterministic).
+
+### `course_progress` collection
+```
+course_progress/{docId}
+  ├── student_id: String
+  ├── course_id: String
+  ├── completed_videos: List<String>    # List of completed videoDocIds
+  ├── completed_videos_count: int
+  ├── last_video_id: String             # Current/next video pointer
+  ├── last_timestamp: int               # Resume position in seconds
+  ├── progress_percentage: double
+  ├── total_videos: int
+  └── updated_at: Timestamp
+```
+
+> ⚠️ **RULE**: `last_video_id` points to the **currently-playing** or **next-to-watch** video.
+> After a video is 90% complete, it is advanced to the next video's ID.
+> The periodic sync (every 5s) must **NOT** overwrite `last_video_id` if the current
+> video is already in `completed_videos` — doing so would regress the pointer.
+
+### `doubts` collection
+```
+doubts/{doubtDocId}
+  ├── studentId: String
+  ├── studentName: String
+  ├── courseId: String
+  ├── courseName: String
+  ├── courseImage: String?
+  ├── videoId: String         # ← MUST be the Firestore videoDocId (NOT the YouTube video ID)
+  ├── videoTitle: String
+  ├── timestampSeconds: int   # Exact second in the video when doubt was submitted
+  ├── message: String
+  ├── staffReply: String?
+  ├── status: "pending" | "replied" | "closed"
+  ├── createdAt: Timestamp
+  └── repliedAt: Timestamp?
+```
+
+> ⚠️ **CRITICAL**: `videoId` in doubts must always equal the Firestore `course_videos`
+> document ID — **not** the YouTube video ID string (e.g. `dQw4w9WgXcQ`).
+
+### `notifications` collection
+```
+notifications/{notifId}
+  ├── recipientUid: String
+  ├── title: String
+  ├── body: String
+  ├── doubtId: String
+  ├── is_read: Boolean
+  └── createdAt: Timestamp
+```
+
+---
+
+## 🎯 Role-Based Access Flow
+
+```
+Splash Screen
+    │
+    ▼
+AuthProvider checks Firebase Auth state
+    │
+    ├─── Not logged in ──► Login Screen ──► Register / Forgot Password
+    │
+    └─── Logged in ──► Role check from Firestore users/{uid}.role
+               │
+               ├─── "admin"   ──► AdminDashboardScreen
+               ├─── "staff"   ──► StaffDashboardScreen
+               └─── "student" ──► StudentDashboardScreen
+```
+
+---
+
+## 🎓 Student Learning Flow (Core)
+
+```
+StudentDashboardScreen
+    │
+    ├── "Continue Watching" card
+    │       └── Reads last_video_id from ProgressProvider.myProgress
+    │               └── Navigates to YouTubePlayerScreen with correct videoDocId + startAt timestamp
+    │
+    └── Browse Courses ──► CourseDetailScreen ──► CourseContentDetailScreen
+```
+
+### CourseContentDetailScreen Flow
+
+```
+CourseContentDetailScreen
+    │
+    ├── Consumer<ProgressProvider>
+    │       └── Reads progress.lastVideoId  →  finds nextIndex in SORTED docs list
+    │
+    ├── StreamBuilder on `course_videos`
+    │       └── Fetches all approved videos for this course
+    │               └── Sorted by createdAt ASC → docs[0] = Chapter 1, docs[1] = Chapter 2...
+    │
+    ├── Resume Card ("START LESSON")
+    │       └── videoDocId = docs[nextIndex].id   ← ✅ always from SORTED list
+    │               └── _handleVideoTap() → Navigator.push(YouTubePlayerScreen)
+    │
+    └── Video List (ListView.builder iterates sorted `docs`)
+            └── WATCH button
+                    └── videoDocId = docs[index].id   ← ✅ always from SORTED list
+                            └── _handleVideoTap() → Navigator.push(YouTubePlayerScreen)
+```
+
+> ⚠️ **GOLDEN RULE**: Both "START LESSON" and "WATCH" must pass `docs[index].id`
+> from the **chronologically sorted** list. Using `snapshot.data!.docs[index].id`
+> (unsorted) causes wrong `videoId` to be passed and breaks doubt synchronization.
+
+---
+
+## 🎬 YouTubePlayerScreen Flow
+
+```
+YouTubePlayerScreen(videoUrl, title, courseId, videoDocId, ...)
+    │
+    initState()
+    ├── _currentVideoDocId = widget.videoDocId
+    ├── _extractVideoId()      ← extracts YouTube video ID from URL
+    ├── _initFlutterController() / _initIframeController()
+    └── _startProgressSync()   ← starts 5s Timer
+            │
+            ├── Every 5 seconds:
+            │       ├── trackPlayedSecond()     ← records seconds watched
+            │       ├── saveProgressLocally()   ← SharedPreferences cache
+            │       ├── Check 90% completion
+            │       │       └── if complete → _handleVideoTransition()
+            │       └── Every 2 min → _triggerCloudSync()
+            │
+_handleVideoTransition()
+    ├── Cancel timer
+    ├── _findNextVideo()        ← queries sorted course_videos, finds next after _currentVideoDocId
+    ├── _triggerCloudSync(forceComplete: true, nextVideoId: next.id)
+    │       └── syncProgressToCloud() → writes completed_videos, advances last_video_id
+    └── nextVideo != null
+            ├── _resetLocalSession(nextVideoId, nextTitle, nextUrl)
+            │       ├── setState { _currentVideoDocId = newId, _currentTitle, _currentUrl }
+            │       ├── _extractVideoId()
+            │       ├── _loadVideoInPlayer()   ← loads new video in same player
+            │       └── _startProgressSync()  ← fresh timer for new video
+            └── else → Navigator.pop()  (all videos done)
+```
+
+### Doubt Feed (\_GlobalDoubtsFeed) — StatefulWidget
+
+```
+_GlobalDoubtsFeed(key: ValueKey(_currentVideoDocId), videoId: _currentVideoDocId)
+    │
+    initState()
+    └── _doubtStream = FirebaseFirestore
+            .collection('doubts')
+            .where('videoId', isEqualTo: widget.videoId)
+            .snapshots()
+            .map(...)
+
+    didUpdateWidget()
+    └── if videoId changed → rebuild _doubtStream   ← belt-and-suspenders
+
+    build()
+    └── StreamBuilder(stream: _doubtStream)
+            ├── waiting  → CircularProgressIndicator
+            ├── empty    → "சந்தேகங்கள் எதுவும் இல்லை"
+            └── data     → ListView of _DoubtThreadWidget
+```
+
+> ✅ **KEY**: `key: ValueKey(_currentVideoDocId)` on the parent forces Flutter to
+> **destroy and recreate** `_GlobalDoubtsFeed` entirely on every video switch.
+> This guarantees the Firestore stream is always bound to the current video —
+> never reused from a previous video session.
+
+---
+
+## 💬 Doubt Submission Flow
+
+```
+Student inside YouTubePlayerScreen
+    │
+    ├── Taps "சந்தேகம் கேட்க (Ask a Doubt)"
+    │
+    ├── _showAskDoubtModal()
+    │       ├── Captures current video timestamp (from player controller)
+    │       └── Shows BottomSheet with TextField
+    │
+    └── On Submit → DoubtProvider.submitDoubt()
+            ├── Writes to `doubts` collection:
+            │       videoId: _currentVideoDocId   ← Firestore doc ID, NOT YouTube ID
+            │       timestampSeconds: <current player position>
+            │       message: <student text>
+            │
+            └── Notifies staff via NotificationService.sendNotification()
+                    └── Looks up course.createdBy → sends FCM push to that staff UID
+```
+
+---
+
+## 📊 Progress Tracking Logic
+
+### 90% Completion Rule
+
+The app uses **unique-seconds tracking** to prevent skipping to the end to mark completion:
+
+```dart
+// Every 5 seconds, record the last 5 seconds as "watched"
+progressProvider.trackPlayedSecond(videoDocId, currentPosition);
+
+// Completion check (either method passes):
+bool isTrulyCompleted = (watchedUniqueSeconds / totalDuration) >= 0.9;
+bool durationReached  = (currentPosition   / totalDuration) >= 0.95;
+```
+
+### Cloud Sync Rules
+
+| Condition | `last_video_id` written | `last_timestamp` written |
+|-----------|------------------------|--------------------------|
+| Video in progress (not completed) | current `videoDocId` | current position |
+| Video already in `completed_videos` (re-watching) | **NOT updated** ✅ | **NOT updated** ✅ |
+| Video just completed (90% rule) | **next video's docId** | `0` (reset) |
+| No next video after completion | current `videoDocId` | current position |
+
+> ⚠️ **BUG TO PREVENT**: If a student re-watches a completed video, the periodic
+> sync must **not** overwrite `last_video_id` back to the re-watched video.
+> That would erase the progress pointer that was already advanced to the next video.
+> Always check `completed.contains(videoId)` before writing `last_video_id`.
+
+---
+
+## 🔔 Notification Flow
+
+```
+Student submits doubt
+    │
+    DoubtProvider.submitDoubt()
+    └── writes to `doubts` collection
+    └── fetches course_uploads/{courseId} → gets createdBy (staff UID)
+    └── NotificationService.sendNotification(recipientUid: staffUID, ...)
+            └── reads FCM token from users/{staffUID}.fcmToken
+            └── POST to FCM API → push notification to staff device
+
+Staff receives notification
+    └── Taps notification → navigates to DoubtChatScreen(doubtId)
+    └── Staff types reply → DoubtProvider.replyToDoubt()
+            └── updates doubts/{doubtId}.staffReply + status="replied"
+            └── Student sees reply in StudentDoubtsScreen (real-time stream)
+```
+
+---
+
+## 🚀 Installation & Local Setup
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/Vinothkumar0311/Vaagai_app.git
-   cd vaagai
+   cd vaagai_app
    ```
 
 2. **Install dependencies**
@@ -129,24 +355,152 @@ graph TD
    ```
 
 3. **Firebase & Google Services Configuration**
-   - Place your Android `google-services.json` inside `android/app/`.
-   - Place your Web Firebase config inside `web/index.html`.
-   - Configure your Google Apps Script Web App URL inside the `DriveUploadService` singleton.
+   - Place your Android `google-services.json` inside `android/app/`
+   - Place your iOS `GoogleService-Info.plist` inside `ios/Runner/`
+   - Web Firebase config is in `web/index.html`
+   - Configure your Google Apps Script Web App URL in `DriveUploadService`
 
 4. **Run the App**
-   - **For Mobile (Android/iOS):**
-     ```bash
-     flutter run
-     ```
-   - **For Web Browser:**
-     ```bash
-     flutter run -d chrome
-     ```
+   ```bash
+   # Mobile
+   flutter run
+
+   # Web (Chrome)
+   flutter run -d chrome
+   ```
 
 ---
 
-### 📸 **Previews & UI (Coming Soon)**
-*(Screenshots of the Dashboard, Video Player, and Course Management can be placed here)*
+## ⚠️ Critical Implementation Rules
+
+These rules prevent known bugs that have been debugged and fixed. Violating them will reintroduce issues.
+
+### 1. Always Sort `course_videos` Before Indexing
+
+```dart
+// ✅ CORRECT
+final docs = snapshot.data!.docs.toList();
+docs.sort((a, b) {
+  final aTime = (a.data() as Map)['createdAt'] as Timestamp?;
+  final bTime = (b.data() as Map)['createdAt'] as Timestamp?;
+  return (aTime ?? Timestamp(0, 0)).compareTo(bTime ?? Timestamp(0, 0));
+});
+// Now use docs[index].id
+final videoDocId = docs[index].id;   // ✅
+
+// ❌ WRONG — Firestore order is non-deterministic
+final videoDocId = snapshot.data!.docs[index].id;  // ❌ BUG
+```
+
+### 2. `videoId` in Doubts = Firestore Document ID
+
+```dart
+// ✅ CORRECT — use the course_videos document ID
+doubtProvider.submitDoubt(videoId: _currentVideoDocId, ...);
+
+// ❌ WRONG — do not use the YouTube video ID string
+doubtProvider.submitDoubt(videoId: _currentVideoId, ...);  // ❌ BUG
+```
+
+### 3. Doubt Feed Must Be Keyed to `videoDocId`
+
+```dart
+// ✅ CORRECT — key forces full widget rebuild on video change
+_GlobalDoubtsFeed(
+  key: ValueKey(_currentVideoDocId),
+  videoId: _currentVideoDocId,
+)
+```
+
+### 4. Never Regress `last_video_id` on Re-Watch
+
+```dart
+// ✅ CORRECT — only update pointer if video is not already completed
+if (!completed.contains(videoId)) {
+  updates['last_video_id'] = videoId;
+  updates['last_timestamp'] = currentTimestamp;
+}
+```
+
+### 5. Use `_GlobalDoubtsFeed` as StatefulWidget
+
+The doubt feed is a `StatefulWidget` that owns its Firestore stream lifecycle.
+Do **not** convert it back to `StatelessWidget` — the stream must be owned and
+disposed by the widget's state, not shared via a provider with `listen: false`.
+
+---
+
+## 📐 Full Application Flow Diagram
+
+```mermaid
+graph TD
+    A[Splash Screen] --> B{Auth State}
+    B -->|Not logged in| C[Login Screen]
+    C --> D[Register] & E[Forgot Password]
+    B -->|Logged in| F{Role Check}
+
+    F -->|admin| G[Admin Dashboard]
+    F -->|staff| H[Staff Dashboard]
+    F -->|student| I[Student Dashboard]
+
+    G --> G1[User Management]
+    G --> G2[Payment Approval]
+    G --> G3[Video Approval]
+
+    H --> H1[Staff Course Screen]
+    H1 --> H2[Upload PDF & Image]
+    H1 --> H3[Add YouTube Videos]
+    H --> H4[Staff Doubts Inbox]
+    H4 --> H5[Reply to Doubts]
+    H --> H6[Notification Inbox]
+
+    I --> I1[Browse Courses]
+    I --> I2["Continue Watching Card (last_video_id)"]
+    I1 --> I3[CourseContentDetailScreen]
+
+    I3 --> I4["Resume Card (START LESSON)"]
+    I3 --> I5["Video List (WATCH)"]
+
+    I4 -->|videoDocId = docs sorted nextIndex .id| I6
+    I5 -->|videoDocId = docs sorted index .id| I6
+
+    I6[YouTubePlayerScreen]
+    I6 --> I7[Video Playback + Progress Timer]
+    I7 -->|5s tick| I8[Track Seconds Watched]
+    I8 -->|90% complete| I9[handleVideoTransition]
+    I9 -->|has next| I10[resetLocalSession - same screen]
+    I9 -->|no next| I11[Navigator.pop]
+
+    I6 --> I12["_GlobalDoubtsFeed (StatefulWidget)"]
+    I12 -->|"key: ValueKey(currentVideoDocId)"| I13["Firestore stream: doubts where videoId == currentVideoDocId"]
+
+    I6 --> I14[Ask Doubt Button]
+    I14 --> I15[Capture timestamp + message]
+    I15 --> I16["submitDoubt: videoId = _currentVideoDocId"]
+    I16 --> I17[Firestore doubts collection]
+    I16 --> I18[FCM notify staff]
+
+    I17 -.->|real-time| I12
+    I18 -.->|push| H4
+```
+
+---
+
+## 📦 Key Dependencies
+
+| Package | Purpose |
+|---|---|
+| `firebase_core` | Firebase initialization |
+| `cloud_firestore` | Firestore real-time database |
+| `firebase_auth` | Authentication |
+| `firebase_messaging` | FCM push notifications |
+| `flutter_local_notifications` | Foreground notification display |
+| `provider` | State management (ChangeNotifier) |
+| `youtube_player_flutter` | Native YouTube player (Mobile) |
+| `youtube_player_iframe` | iFrame YouTube player (Web) |
+| `syncfusion_flutter_pdfviewer` | Native PDF rendering |
+| `shared_preferences` | Local progress caching |
+| `cached_network_image` | Efficient image loading |
 
 ---
 

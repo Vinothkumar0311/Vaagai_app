@@ -17,6 +17,7 @@ import 'package:vaagai/view/screens/student_doubts_screen.dart';
 import 'package:vaagai/view/screens/staff_doubts_screen.dart';
 import 'package:vaagai/view/screens/doubt_chat_screen.dart';
 import 'package:vaagai/view/screens/staff_notification_inbox_screen.dart';
+import 'package:vaagai/view/screens/analytics_course_list_screen.dart';
 import 'package:vaagai/core/models/doubt_model.dart';
 
 class AppRoutes {
@@ -38,6 +39,7 @@ class AppRoutes {
   static const String staffDoubts = '/staff_doubts';
   static const String doubtChat = '/doubt_chat';
   static const String staffNotificationInbox = '/staff_notification_inbox';
+  static const String analytics = '/analytics';
 
   // 🔹 Route Generator
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -82,6 +84,9 @@ class AppRoutes {
       case staffNotificationInbox:
         return MaterialPageRoute(
             builder: (_) => const StaffNotificationInboxScreen());
+      case analytics:
+        return MaterialPageRoute(
+            builder: (_) => const AnalyticsCourseListScreen());
       default:
         return MaterialPageRoute(
           builder: (_) =>

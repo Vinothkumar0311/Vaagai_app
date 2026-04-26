@@ -141,6 +141,14 @@ class AdminDashboardScreen extends StatelessWidget {
                       color: Colors.orange.shade800,
                       onTap: () {}, // Future feature
                     ),
+                    const SizedBox(height: 16),
+                    _AdminSelectionCard(
+                      title: 'பாடநெறி பகுப்பாய்வு',
+                      subtitle: 'அனைத்து பாடநெறிகளின் மாணவர் முன்னேற்றத்தை சரிபார்க்கவும்',
+                      icon: Icons.analytics_rounded,
+                      color: Colors.blue.shade800,
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.analytics),
+                    ),
                   ],
                 ),
               ),

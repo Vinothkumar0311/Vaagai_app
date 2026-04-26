@@ -5,8 +5,10 @@ import 'package:vaagai/core/constants/app_strings.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/course_access_provider.dart';
+import '../../providers/progress_provider.dart';
 import '../../core/models/uploaded_document.dart';
 import '../../core/models/course_access_model.dart';
+import '../../core/models/course_progress_model.dart';
 import '../widgets/course_widgets.dart';
 import 'course_content_detail_screen.dart';
 import 'payment_registration_screen.dart';
@@ -34,6 +36,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       if (user != null) {
         Provider.of<CourseAccessProvider>(context, listen: false)
             .fetchMyAccessRecords(user.uid);
+        Provider.of<ProgressProvider>(context, listen: false)
+            .fetchStudentProgress(user.uid);
       }
     });
   }
@@ -255,8 +259,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 .map((d) => UploadedDocument.fromFirestore(d))
                 .toList();
 
-            return Consumer<CourseAccessProvider>(
-              builder: (context, accessProvider, _) {
+            return Consumer2<CourseAccessProvider, ProgressProvider>(
+              builder: (context, accessProvider, progressProvider, _) {
                 final user =
                     Provider.of<AuthProvider>(context, listen: false).userModel;
                 return SliverPadding(
@@ -270,11 +274,14 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                             : null;
                         final hasAccess = user != null &&
                             accessProvider.isCourseAccessible(user.uid, doc.id);
+                        final progress = progressProvider.myProgress[doc.id];
+
                         return _CourseCard(
                           doc: doc,
                           primaryGreen: _primaryGreen,
                           hasAccess: hasAccess,
                           accessRecord: accessRecord,
+                          progress: progress,
                         );
                       },
                       childCount: docs.length,
@@ -391,12 +398,14 @@ class _CourseCard extends StatelessWidget {
   final Color primaryGreen;
   final bool hasAccess;
   final CourseAccessModel? accessRecord;
+  final CourseProgressModel? progress;
 
   const _CourseCard({
     required this.doc,
     required this.primaryGreen,
     this.hasAccess = false,
     this.accessRecord,
+    this.progress,
   });
 
   @override
@@ -519,7 +528,36 @@ class _CourseCard extends StatelessWidget {
                     style: TextStyle(
                         color: Colors.grey.shade600, fontSize: 13, height: 1.4),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+                  if (hasAccess && progress != null) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Progress',
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade700)),
+                        Text(
+                            '${progress!.progressPercentage.toStringAsFixed(0)}% (${progress!.completedVideosCount}/${progress!.totalVideos})',
+                            style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1B5E20))),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    LinearProgressIndicator(
+                      value: progress!.totalVideos > 0
+                          ? progress!.progressPercentage / 100
+                          : 0,
+                      backgroundColor: Colors.grey.shade200,
+                      color: const Color(0xFF1B5E20),
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -529,8 +567,11 @@ class _CourseCard extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) =>
-                                    CourseContentDetailScreen(doc: doc)),
+                                builder: (context) => CourseContentDetailScreen(
+                                      doc: doc,
+                                      lastVideoId: progress?.lastVideoId,
+                                      lastTimestamp: progress?.lastTimestamp,
+                                    )),
                           );
                         } else {
                           Navigator.push(
@@ -563,7 +604,10 @@ class _CourseCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             hasAccess
-                                ? AppStrings.accessMaterial
+                                ? (progress != null &&
+                                        progress!.lastVideoId != null
+                                    ? "Continue Watching"
+                                    : AppStrings.accessMaterial)
                                 : isPending
                                     ? AppStrings.approvalPending
                                     : AppStrings.registerCourse,

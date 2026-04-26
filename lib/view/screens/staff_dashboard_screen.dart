@@ -89,6 +89,12 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                 Navigator.pushNamed(context, AppRoutes.staffDoubts),
           ),
           IconButton(
+            icon: const Icon(Icons.analytics_rounded, color: Colors.white),
+            tooltip: 'Course Analytics',
+            onPressed: () =>
+                Navigator.pushNamed(context, AppRoutes.analytics),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               final confirm = await DialogUtils.showLogoutConfirmation(context);
