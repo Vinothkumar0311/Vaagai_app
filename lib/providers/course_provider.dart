@@ -18,7 +18,7 @@ class CourseProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
-      QuerySnapshot snapshot = await _firestore.collection('courses').orderBy('createdAt', descending: true).get();
+      QuerySnapshot snapshot = await _firestore.collection('course_uploads').orderBy('createdAt', descending: true).get();
       _allCourses = snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
     } catch (e) {
       debugPrint("Error fetching all courses: $e");
@@ -33,7 +33,7 @@ class CourseProvider with ChangeNotifier {
     notifyListeners();
     try {
       QuerySnapshot snapshot = await _firestore
-          .collection('courses')
+          .collection('course_uploads')
           .where('createdBy', isEqualTo: staffUid)
           .get();
       _staffCourses = snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
@@ -61,9 +61,10 @@ class CourseProvider with ChangeNotifier {
         description: description,
         category: category,
         createdBy: staffUid,
+        trainers: '', // Default empty trainers
         createdAt: DateTime.now(),
       );
-      await _firestore.collection('courses').add(newCourse.toMap());
+      await _firestore.collection('course_uploads').add(newCourse.toMap());
       await fetchStaffCourses(staffUid);
       return null;
     } catch (e) {

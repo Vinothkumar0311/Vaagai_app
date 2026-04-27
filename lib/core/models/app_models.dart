@@ -52,10 +52,12 @@ class UserModel {
 class CourseModel {
   final String id;
   final String title;
-  final String description;
+  final String description; // Map this to 'objective' if needed
   final String category;
   final String createdBy;
   final String? imageUrl;
+  final String? pdfUrl;
+  final String trainers;
   final DateTime createdAt;
 
   CourseModel({
@@ -65,6 +67,8 @@ class CourseModel {
     required this.category,
     required this.createdBy,
     this.imageUrl,
+    this.pdfUrl,
+    required this.trainers,
     required this.createdAt,
   });
 
@@ -73,10 +77,12 @@ class CourseModel {
     return CourseModel(
       id: doc.id,
       title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      category: data['category'] ?? '',
+      description: data['objective'] ?? data['description'] ?? '',
+      category: data['category'] ?? 'General',
       createdBy: data['createdBy'] ?? '',
       imageUrl: data['imageUrl'],
+      pdfUrl: data['pdfUrl'],
+      trainers: data['trainers'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -84,10 +90,12 @@ class CourseModel {
   Map<String, dynamic> toMap() {
     return {
       'title': title,
-      'description': description,
+      'objective': description,
       'category': category,
       'createdBy': createdBy,
       'imageUrl': imageUrl,
+      'pdfUrl': pdfUrl,
+      'trainers': trainers,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }

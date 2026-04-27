@@ -6,7 +6,9 @@ import '../../providers/notification_provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/models/app_models.dart';
-import 'course_detail_screen.dart';
+import '../../core/models/uploaded_document.dart';
+import '../../core/utils/drive_utils.dart';
+import 'staff_course_detail_screen.dart';
 import '../widgets/dialogs.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
@@ -21,134 +23,255 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = Provider.of<AuthProvider>(context, listen: false).userModel;
-      if (user != null) {
-        Provider.of<CourseProvider>(context, listen: false)
-            .fetchStaffCourses(user.uid);
-      }
+      _refreshData();
     });
+  }
+
+  void _refreshData() {
+    final user = Provider.of<AuthProvider>(context, listen: false).userModel;
+    if (user != null) {
+      Provider.of<CourseProvider>(context, listen: false)
+          .fetchStaffCourses(user.uid);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<AuthProvider>(context).userModel;
     final courseProvider = Provider.of<CourseProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: const Text('ஆசிரியர் பகுதி (Staff)'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          // Real-time notification bell with badge
-          StreamBuilder<int>(
-            stream: Provider.of<NotificationProvider>(context, listen: false)
-                .unreadCountStream(
-              Provider.of<AuthProvider>(context, listen: false).userModel?.uid ?? '',
-            ),
-            builder: (context, snapshot) {
-              final count = snapshot.data ?? 0;
-              return Stack(
+      backgroundColor: const Color(0xFFF4F7F6),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          _buildAppBar(user),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_rounded, color: Colors.white),
-                    tooltip: 'Notifications',
-                    onPressed: () =>
-                        Navigator.pushNamed(context, AppRoutes.staffNotificationInbox),
+                  _buildWelcomeHeader(user),
+                  const SizedBox(height: 24),
+                  _buildQuickStats(context, courseProvider.staffCourses.length),
+                  const SizedBox(height: 32),
+                  const Text(
+                    "எனது பாடங்கள் (My Courses)",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E264D),
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                  if (count > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
-                          shape: BoxShape.circle,
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+          courseProvider.isLoading
+              ? const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                )
+              : courseProvider.staffCourses.isEmpty
+                  ? SliverToBoxAdapter(child: _buildEmptyState())
+                  : SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 1,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 2.2,
                         ),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                        child: Text(
-                          count > 99 ? '99+' : '$count',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _CourseCard(course: courseProvider.staffCourses[index]),
+                          childCount: courseProvider.staffCourses.length,
                         ),
                       ),
                     ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.forum, color: Colors.white),
-            tooltip: 'Doubt Inbox',
-            onPressed: () =>
-                Navigator.pushNamed(context, AppRoutes.staffDoubts),
-          ),
-          IconButton(
-            icon: const Icon(Icons.analytics_rounded, color: Colors.white),
-            tooltip: 'Course Analytics',
-            onPressed: () =>
-                Navigator.pushNamed(context, AppRoutes.analytics),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final confirm = await DialogUtils.showLogoutConfirmation(context);
-              if (confirm && context.mounted) {
-                final authProvider =
-                    Provider.of<AuthProvider>(context, listen: false);
-                authProvider.logout();
-                Navigator.pushReplacementNamed(context, '/login');
-              }
-            },
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
-      body: courseProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : courseProvider.staffCourses.isEmpty
-              ? _buildEmptyState()
-              : GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.8,
-                  ),
-                  itemCount: courseProvider.staffCourses.length,
-                  itemBuilder: (context, index) {
-                    final course = courseProvider.staffCourses[index];
-                    return _CourseCard(course: course);
-                  },
-                ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.documentUpload),
         backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label:
-            const Text('Create Course', style: TextStyle(color: Colors.white)),
+        elevation: 6,
+        icon: const Icon(Icons.add_task_rounded, color: Colors.white),
+        label: const Text('New Course',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.library_books_outlined,
-              size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text(
-            'பாடங்கள் எதுவும் உருவாக்கப்படவில்லை',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+  Widget _buildAppBar(UserModel? user) {
+    return SliverAppBar(
+      expandedHeight: 0,
+      floating: true,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      title: const Text('Vaagai Staff', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+      actions: [
+        _buildNotificationBell(user?.uid ?? ''),
+        IconButton(
+          icon: const Icon(Icons.analytics_rounded),
+          onPressed: () => Navigator.pushNamed(context, AppRoutes.analytics),
+        ),
+        IconButton(
+          icon: const Icon(Icons.logout_rounded),
+          onPressed: () async {
+            final confirm = await DialogUtils.showLogoutConfirmation(context);
+            if (confirm && context.mounted) {
+              Provider.of<AuthProvider>(context, listen: false).logout();
+              Navigator.pushReplacementNamed(context, '/login');
+            }
+          },
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  Widget _buildNotificationBell(String userId) {
+    return StreamBuilder<int>(
+      stream: Provider.of<NotificationProvider>(context, listen: false).unreadCountStream(userId),
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_rounded),
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.staffNotificationInbox),
+            ),
+            if (count > 0)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildWelcomeHeader(UserModel? user) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "வணக்கம், ${user?.name ?? 'Teacher'}",
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1B5E20)),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "இன்று உங்கள் மாணவர்களுக்கு என்ன கற்பிக்கப் போகிறீர்கள்?",
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickStats(BuildContext context, int courseCount) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatCard(
+            title: "பாடங்கள்",
+            value: courseCount.toString(),
+            icon: Icons.auto_stories_rounded,
+            color: Colors.blue.shade700,
+            onTap: () {},
           ),
-        ],
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _StatCard(
+            title: "சந்தேகங்கள்",
+            value: "Inbox",
+            icon: Icons.forum_rounded,
+            color: Colors.orange.shade800,
+            onTap: () => Navigator.pushNamed(context, AppRoutes.staffDoubts),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade100)),
+              child: Icon(Icons.school_outlined, size: 80, color: Colors.grey.shade200),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "பாடங்கள் எதுவும் உருவாக்கப்படவில்லை",
+              style: TextStyle(color: Color(0xFF1E264D), fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "உங்கள் முதல் பாடத்தை இப்போதே உருவாக்குங்கள்",
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _StatCard({required this.title, required this.value, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(height: 16),
+            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E264D))),
+            Text(title, style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
@@ -160,57 +283,86 @@ class _CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String? thumbUrl = DriveUtils.getDirectViewUrl(course.imageUrl);
+
     return InkWell(
       onTap: () {
+        // Convert CourseModel back to UploadedDocument for the detail screen
+        final doc = UploadedDocument(
+          id: course.id,
+          title: course.title,
+          objective: course.description,
+          trainers: course.trainers,
+          imageUrl: course.imageUrl,
+          pdfUrl: course.pdfUrl,
+          createdAt: course.createdAt,
+          createdBy: course.createdBy,
+        );
         Navigator.push(
           context,
-          MaterialPageRoute(
-              builder: (context) => CourseDetailScreen(course: course)),
+          MaterialPageRoute(builder: (context) => StaffCourseDetailScreen(doc: doc)),
         );
       },
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4))
-          ],
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+            ClipRRect(
+              borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
+              child: Container(
+                width: 120,
+                height: double.infinity,
+                color: Colors.grey.shade100,
+                child: thumbUrl != null
+                    ? Image.network(
+                        thumbUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, color: Colors.grey),
+                      )
+                    : const Icon(Icons.school_rounded, color: Colors.grey),
               ),
-              child: const Center(
-                  child: Icon(Icons.book, size: 40, color: AppColors.primary)),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(course.category.toUpperCase(),
-                      style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10)),
-                  const SizedBox(height: 4),
-                  Text(course.title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 14),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                      child: Text(course.category.toUpperCase(), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 9)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      course.title,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1E264D)),
                       maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
-                ],
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${course.createdAt.day}/${course.createdAt.month}/${course.createdAt.year}",
+                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
             ),
           ],
         ),

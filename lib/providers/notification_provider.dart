@@ -61,4 +61,31 @@ class NotificationProvider with ChangeNotifier {
       debugPrint('NotificationProvider markAllAsRead error: $e');
     }
   }
+
+  // ─── Delete ─────────────────────────────────────────────────────────────
+
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await _firestore.collection('notifications').doc(notificationId).delete();
+    } catch (e) {
+      debugPrint('NotificationProvider deleteNotification error: $e');
+    }
+  }
+
+  Future<void> clearAllNotifications(String userId) async {
+    try {
+      final snap = await _firestore
+          .collection('notifications')
+          .where('receiver_id', isEqualTo: userId)
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in snap.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('NotificationProvider clearAllNotifications error: $e');
+    }
+  }
 }
