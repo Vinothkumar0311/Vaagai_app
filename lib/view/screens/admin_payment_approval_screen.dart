@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/course_access_provider.dart';
+import '../../providers/payment_provider.dart';
 import '../../core/models/course_access_model.dart';
+import '../../core/models/payment_record_model.dart';
 import '../widgets/course_widgets.dart';
 
 /// Admin screen to view and approve/reject student payment registrations.
@@ -39,16 +40,16 @@ class AdminPaymentApprovalScreen extends StatelessWidget {
                 const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
             tabs: const [
               Tab(text: 'PENDING'),
-              Tab(text: 'APPROVED'),
-              Tab(text: 'REJECTED'),
+              Tab(text: 'SUCCESS'),
+              Tab(text: 'FAILED'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _PaymentList(statusFilter: 'pending'),
-            _PaymentList(statusFilter: 'approved'),
-            _PaymentList(statusFilter: 'rejected'),
+            _PaymentList(statusFilters: const ['pending', 'verification_pending']),
+            _PaymentList(statusFilters: const ['success']),
+            _PaymentList(statusFilters: const ['failed']),
           ],
         ),
       ),
@@ -61,15 +62,16 @@ class AdminPaymentApprovalScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PaymentList extends StatelessWidget {
-  final String statusFilter;
-  const _PaymentList({required this.statusFilter});
+  final List<String> statusFilters;
+  const _PaymentList({required this.statusFilters});
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('course_access')
-          .where('paymentStatus', isEqualTo: statusFilter)
+          .collection('payments')
+          .where('status', whereIn: statusFilters)
+          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -88,11 +90,11 @@ class _PaymentList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmpty(statusFilter);
+          return _buildEmpty(statusFilters.first);
         }
 
         final records = snapshot.data!.docs
-            .map((d) => CourseAccessModel.fromFirestore(d))
+            .map((d) => PaymentRecordModel.fromFirestore(d))
             .toList();
 
         return ListView.builder(
@@ -108,8 +110,8 @@ class _PaymentList extends StatelessWidget {
   Widget _buildEmpty(String status) {
     final labels = {
       'pending': 'நிலுவையில் உள்ள கோரிக்கைகள் இல்லை',
-      'approved': 'ஒப்புதல் பெற்ற கோரிக்கைகள் இல்லை',
-      'rejected': 'நிராகரிக்கப்பட்ட கோரிக்கைகள் இல்லை',
+      'success': 'ஒப்புதல் பெற்ற கோரிக்கைகள் இல்லை',
+      'failed': 'நிராகரிக்கப்பட்ட கோரிக்கைகள் இல்லை',
     };
     return Center(
       child: Column(
@@ -130,14 +132,15 @@ class _PaymentList extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PaymentCard extends StatelessWidget {
-  final CourseAccessModel record;
+  final PaymentRecordModel record;
   static const Color _primary = Color(0xFF1B5E20);
 
   const _PaymentCard({required this.record});
 
   @override
   Widget build(BuildContext context) {
-    final isPending = record.paymentStatus == PaymentStatus.pending;
+    final isPending = record.status == PaymentRecordStatus.pending ||
+        record.status == PaymentRecordStatus.verificationPending;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -168,8 +171,8 @@ class _PaymentCard extends StatelessWidget {
                   radius: 22,
                   backgroundColor: _primary.withOpacity(0.1),
                   child: Text(
-                    record.studentName.isNotEmpty
-                        ? record.studentName[0].toUpperCase()
+                    record.userName.isNotEmpty
+                        ? record.userName[0].toUpperCase()
                         : '?',
                     style: const TextStyle(
                         color: _primary,
@@ -182,16 +185,16 @@ class _PaymentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(record.studentName,
+                      Text(record.userName,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 15)),
-                      Text(record.studentEmail,
+                      Text(record.userEmail,
                           style: TextStyle(
                               color: Colors.grey.shade500, fontSize: 12)),
                     ],
                   ),
                 ),
-                StatusChip.fromPaymentStatus(record.paymentStatus),
+                StatusChip.fromPaymentStatus(_toLegacyStatus(record.status)),
               ],
             ),
           ),
@@ -202,26 +205,33 @@ class _PaymentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _infoRow(Icons.menu_book_rounded, 'பாடம்', record.courseTitle),
+                _infoRow(Icons.menu_book_rounded, 'பாடம்',
+                    record.courseItems.map((e) => e.courseTitle).join(', ')),
+                // const SizedBox(height: 8),
+                // _infoRow(Icons.currency_rupee_rounded, 'தொகை', '₹ ${record.amount}'),
                 const SizedBox(height: 8),
                 _infoRow(
                   Icons.calendar_today_rounded,
                   'தேதி',
                   _formatDate(record.createdAt),
                 ),
+                if (record.submittedPaymentRef != null && record.submittedPaymentRef!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _infoRow(Icons.tag_rounded, 'Ref ID', record.submittedPaymentRef!),
+                ],
                 if (record.rejectionReason != null &&
-                    record.paymentStatus == PaymentStatus.rejected) ...[
+                    record.status == PaymentRecordStatus.failed) ...[
                   const SizedBox(height: 8),
                   _infoRow(Icons.info_outline_rounded, 'காரணம்',
                       record.rejectionReason!,
                       valueColor: Colors.red.shade600),
                 ],
 
-                // Payment proof link
-                if (record.paymentProofUrl != null) ...[
+                // Payment proof link (only if an actual URL exists)
+                if (record.paymentScreenshotUrl != null && record.paymentScreenshotUrl!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: () => _openUrl(record.paymentProofUrl!),
+                    onTap: () => _openUrl(record.paymentScreenshotUrl!),
                     child: Row(
                       children: [
                         Icon(Icons.receipt_long_rounded,
@@ -350,11 +360,9 @@ class _PaymentCard extends StatelessWidget {
 
     final admin =
         Provider.of<AuthProvider>(context, listen: false).userModel;
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
-
+    final provider = Provider.of<PaymentProvider>(context, listen: false);
     final error = await provider.approvePayment(
-      accessId: record.id,
+      payment: record,
       adminId: admin?.uid ?? 'admin',
     );
 
@@ -386,13 +394,11 @@ class _PaymentCard extends StatelessWidget {
 
     final admin =
         Provider.of<AuthProvider>(context, listen: false).userModel;
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
-
+    final provider = Provider.of<PaymentProvider>(context, listen: false);
     final error = await provider.rejectPayment(
-      accessId: record.id,
+      payment: record,
       adminId: admin?.uid ?? 'admin',
-      reason: reason == 'confirmed' ? null : reason,
+      reason: reason == 'confirmed' ? 'Rejected by admin' : reason,
     );
 
     if (!context.mounted) return;
@@ -410,6 +416,18 @@ class _PaymentCard extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  PaymentStatus _toLegacyStatus(PaymentRecordStatus status) {
+    switch (status) {
+      case PaymentRecordStatus.success:
+        return PaymentStatus.approved;
+      case PaymentRecordStatus.failed:
+        return PaymentStatus.rejected;
+      case PaymentRecordStatus.pending:
+      case PaymentRecordStatus.verificationPending:
+        return PaymentStatus.pending;
+    }
   }
 
   Future<void> _openUrl(String url) async {

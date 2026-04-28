@@ -36,9 +36,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       final user = Provider.of<AuthProvider>(context, listen: false).userModel;
       if (user != null) {
         Provider.of<CourseAccessProvider>(context, listen: false)
-            .fetchMyAccessRecords(user.uid);
+            .startListeningToMyAccessRecords(user.uid);
         Provider.of<ProgressProvider>(context, listen: false)
-            .fetchStudentProgress(user.uid);
+            .startListeningToStudentProgress(user.uid);
       }
     });
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../core/models/course_access_model.dart';
@@ -23,10 +24,23 @@ class CourseAccessProvider with ChangeNotifier {
   /// Current student's access records
   List<CourseAccessModel> _myAccessRecords = [];
   List<CourseAccessModel> get myAccessRecords => _myAccessRecords;
+  StreamSubscription<QuerySnapshot>? _myAccessSubscription;
 
   /// All pending videos (for Admin panel)
   List<CourseVideoModel> _pendingVideos = [];
   List<CourseVideoModel> get pendingVideos => _pendingVideos;
+
+  @override
+  void dispose() {
+    _myAccessSubscription?.cancel();
+    super.dispose();
+  }
+
+  void clearListeners() {
+    _myAccessSubscription?.cancel();
+    _myAccessRecords.clear();
+    notifyListeners();
+  }
 
   // ─── PAYMENT / ACCESS METHODS ────────────────────────────────────────────
 
@@ -68,8 +82,7 @@ class CourseAccessProvider with ChangeNotifier {
       );
 
       await _db.collection('course_access').add(access.toMap());
-      // Refresh local list
-      await fetchMyAccessRecords(studentId);
+      // Refresh local list - the stream subscription will automatically catch this!
       return null; // success
     } catch (e) {
       return e.toString();
@@ -78,19 +91,23 @@ class CourseAccessProvider with ChangeNotifier {
     }
   }
 
-  /// Fetches all access records for the current student.
-  Future<void> fetchMyAccessRecords(String studentId) async {
-    try {
-      final snap = await _db
-          .collection('course_access')
-          .where('studentId', isEqualTo: studentId)
-          .get();
-      _myAccessRecords =
-          snap.docs.map((d) => CourseAccessModel.fromFirestore(d)).toList();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('fetchMyAccessRecords error: $e');
-    }
+  /// Real-time stream of all access records for the current student.
+  void startListeningToMyAccessRecords(String studentId) {
+    _myAccessSubscription?.cancel();
+    _myAccessSubscription = _db
+        .collection('course_access')
+        .where('studentId', isEqualTo: studentId)
+        .snapshots()
+        .listen(
+      (snap) {
+        _myAccessRecords =
+            snap.docs.map((d) => CourseAccessModel.fromFirestore(d)).toList();
+        notifyListeners();
+      },
+      onError: (e) {
+        debugPrint('startListeningToMyAccessRecords error: $e');
+      },
+    );
   }
 
   /// Quick lookup: is a course accessible for the given student?

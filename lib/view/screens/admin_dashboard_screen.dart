@@ -59,8 +59,9 @@ class AdminDashboardScreen extends StatelessWidget {
                     Expanded(
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
-                            .collection('course_access')
-                            .where('paymentStatus', isEqualTo: 'pending')
+                            .collection('payments')
+                            .where('status',
+                                whereIn: ['pending', 'verification_pending'])
                             .snapshots(),
                         builder: (context, snapshot) {
                           final count = snapshot.data?.docs.length ?? 0;

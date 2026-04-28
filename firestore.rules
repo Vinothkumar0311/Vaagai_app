@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Students can only create their own pending payment request.
+      allow create: if isSignedIn() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.status == "pending";
+
+      // Students can only submit payment proof (pending -> verification_pending).
+      allow update: if isSignedIn() &&
+        resource.data.userId == request.auth.uid &&
+        resource.data.status == "pending" &&
+        request.resource.data.status == "verification_pending";
+
+      // Admin can set final statuses and verification fields.
+      allow update: if isAdmin();
+    }
+
+    // Existing collection; keep student/admin-specific access control.
+    match /course_access/{docId} {
+      allow read: if isSignedIn() &&
+        (resource.data.studentId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+    }
+  }
+}

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
-import '../../providers/course_access_provider.dart';
+import '../../providers/payment_provider.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../core/constants/app_strings.dart';
 
@@ -15,6 +16,7 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   bool _isCheckingOut = false;
+  bool _isSubmittingProof = false;
   static const Color _primary = Color(0xFF1B5E20);
 
   @override
@@ -135,59 +137,223 @@ class _CartScreenState extends State<CartScreen> {
     
     setState(() => _isCheckingOut = true);
     
-    final accessProvider = Provider.of<CourseAccessProvider>(context, listen: false);
-    final error = await cart.checkout(
-      accessProvider: accessProvider,
-      studentId: user.uid,
-      studentName: user.name,
-      studentEmail: user.email,
+    final paymentProvider = Provider.of<PaymentProvider>(context, listen: false);
+    final paymentIdOrError = await paymentProvider.createPendingPayment(
+      userId: user.uid,
+      userName: user.name,
+      userEmail: user.email,
+      courses: cart.items,
     );
     
     if (mounted) {
       setState(() => _isCheckingOut = false);
       
-      if (error == null) {
-        _showSuccessDialog(context);
+      if (paymentIdOrError == null || paymentIdOrError.startsWith('ERROR:')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (paymentIdOrError ?? 'ERROR: Failed to start payment')
+                  .replaceFirst('ERROR: ', ''),
+            ),
+          ),
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+        final paymentId = paymentIdOrError;
+        
+        final proceed = await _showPrePaymentDialog(context);
+        if (proceed != true || !mounted) {
+          setState(() => _isCheckingOut = false);
+          return;
+        }
+
+        await _openRazorpayLink();
+        if (!mounted) return;
+        cart.clearCart();
+        await _showPostPaymentDialog(context, paymentId);
       }
     }
   }
 
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
+  Future<void> _openRazorpayLink() async {
+    final uri = Uri.parse(PaymentProvider.hostedPaymentLink);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<bool?> _showPrePaymentDialog(BuildContext context) async {
+    return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Icon(Icons.check_circle, color: Colors.green, size: 64),
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                AppStrings.prePaymentNoticeTitle,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          AppStrings.prePaymentNoticeMsg,
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text("CONTINUE PAY"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPostPaymentDialog(BuildContext context, String paymentId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Icon(Icons.payments_rounded, color: _primary, size: 56),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              "வெற்றிகரமாக கோரிக்கை அனுப்பப்பட்டது!",
+              AppStrings.postPaymentTitle,
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             SizedBox(height: 12),
             Text(
-              "நிர்வாகி உங்களது கோரிக்கையை சரிபார்த்து பாடங்களை அனுமதிப்பார்.",
+              AppStrings.postPaymentMsg,
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),
         actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(AppStrings.postPaymentLater),
+          ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
+            onPressed: _isSubmittingProof
+                ? null
+                : () async {
+                    Navigator.pop(dialogContext);
+                    await _showProofSheet(context, paymentId);
+                  },
             style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
-            child: const Text("DONE"),
+            child: const Text(AppStrings.postPaymentPaid),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showProofSheet(BuildContext context, String paymentId) async {
+    final refCtrl = TextEditingController();
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  AppStrings.proofSheetTitle,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: refCtrl,
+                  decoration: const InputDecoration(
+                    labelText: AppStrings.proofSheetLabel,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSubmittingProof
+                        ? null
+                        : () async {
+                            final ref = refCtrl.text.trim();
+                            if (ref.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(AppStrings.proofIdRequired),
+                                ),
+                              );
+                              return;
+                            }
+                            setSheetState(() => _isSubmittingProof = true);
+                            final provider = Provider.of<PaymentProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final error = await provider.submitManualProof(
+                              paymentId: paymentId,
+                              screenshotUrl: "",
+                              paymentReferenceId: ref,
+                            );
+                            if (!mounted) return;
+                            setSheetState(() => _isSubmittingProof = false);
+                            if (error == null) {
+                              Navigator.pushNamedAndRemoveUntil(context, '/student_dashboard', (r) => false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(AppStrings.proofSubmitted),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(error)),
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(backgroundColor: _primary),
+                    child: _isSubmittingProof
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            AppStrings.proofSheetSubmit,
+                            style: TextStyle(color: Colors.white),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

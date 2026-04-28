@@ -12,9 +12,9 @@
 
 ## 🔥 Overview
 
-**Vaagai** is a premium cross-platform educational application built with Flutter + Firebase. It enables staff to create and manage video-based courses, and students to watch lessons, track progress, and interact with instructors through an async doubt system.
+**Vaagai** is a premium cross-platform educational application built with Flutter + Firebase. It enables staff to create and manage video-based courses, and students to watch lessons, track progress, and interact with instructors through an async doubt system. The app features a secure **Razorpay-integrated** checkout flow for course access.
 
-The architecture uses the **Provider** pattern for state management, **Firestore** as the real-time backend, and a strict separation between UI views, providers, services, and data models.
+The architecture uses the **Provider** pattern for state management, **Firestore** as the real-time backend, and a strict separation between UI views, providers, services, and data models. It is built for **real-time synchronization**, ensuring data is always live without page reloads.
 
 ---
 
@@ -133,6 +133,37 @@ doubts/{doubtDocId}
 > ⚠️ **CRITICAL**: `videoId` in doubts must always equal the Firestore `course_videos`
 > document ID — **not** the YouTube video ID string (e.g. `dQw4w9WgXcQ`).
 
+### `payments` collection (Razorpay Integration)
+```
+payments/{paymentDocId}
+  ├── userId: String
+  ├── userName: String
+  ├── userEmail: String
+  ├── courseIds: List<String>
+  ├── courseItems: List<Map>      # {courseId, courseTitle}
+  ├── amount: int                 # In INR
+  ├── status: "pending" | "verification_pending" | "success" | "failed"
+  ├── paymentLink: String         # Hosted Razorpay link
+  ├── submittedPaymentRef: String # Student-provided Reference ID
+  ├── verifiedBy: String?         # Admin UID
+  ├── createdAt: Timestamp
+  └── updatedAt: Timestamp
+```
+
+### `course_access` collection
+```
+course_access/{accessDocId}
+  ├── studentId: String
+  ├── courseId: String
+  ├── courseTitle: String
+  ├── paymentStatus: "pending" | "approved" | "rejected"
+  ├── accessEnabled: Boolean
+  ├── paymentProofUrl: String?    # Link to verification screenshot
+  ├── approvedBy: String?         # Admin UID
+  ├── rejectionReason: String?
+  └── createdAt: Timestamp
+```
+
 ### `notifications` collection
 ```
 notifications/{notifId}
@@ -176,7 +207,7 @@ StudentDashboardScreen
     │
     └── Browse Courses ──► Add to Cart (CartProvider) ──► CartScreen
             │
-            └── Request Unlock (Bulk) ──► CourseAccessProvider ──► Admin Approval
+            └── Request Unlock (Checkout) ──► PaymentProvider (Razorpay) ──► Admin Approval
 ```
 
 ### CourseContentDetailScreen Flow
@@ -324,10 +355,12 @@ bool durationReached  = (currentPosition   / totalDuration) >= 0.95;
 
 The app uses a cart-based system for course access requests to allow students to select multiple courses and request unlocking in a single batch.
 
-1. **Course Selection**: From the `StudentDashboardScreen`, students can add locked courses to their cart.
-2. **Review & Edit**: The `CartScreen` allows students to review their selections and remove items.
-3. **Bulk Request**: Tapping "REQUEST UNLOCK" in the cart iterates through all items and creates pending access records in the `course_access` collection via `CourseAccessProvider`.
-4. **Approval**: Access remains `pending` until an admin approves the request.
+1.  **Course Selection**: From the `StudentDashboardScreen`, students can add locked courses to their cart.
+2.  **Review & Edit**: The `CartScreen` allows students to review their selections and remove items.
+3.  **Bilingual Pre-Payment Notice**: Tapping "REQUEST UNLOCK" triggers a bilingual (Tamil/English) popup reminding the student to capture their **Payment ID** after the transaction.
+4.  **Razorpay Integration**: Students are redirected to a hosted Razorpay payment link.
+5.  **Manual Proof Submission**: After payment, students enter their Razorpay Reference ID into the app for verification.
+6.  **Admin Approval**: Once the admin verifies the Reference ID in the `payments` collection, the student's access is enabled across all selected courses.
 
 ---
 
@@ -361,12 +394,15 @@ The application has been modernized from a "Fetch-on-Load" pattern to a **Fully 
 ### 🔄 Real-Time Dashboard Synchronization
 *   **Staff Dashboard**: Now uses `StreamBuilder` on `course_uploads`. When a staff member publishes a new course via `DocumentUploadScreen`, it appears instantly in their "My Courses" list.
 *   **Student Dashboard**: Built with snapshots to show newly approved courses the moment they are greenlit by admins.
+*   **Access & Progress Streams**: `CourseAccessProvider` and `ProgressProvider` maintain live Firestore subscriptions. When an admin approves a payment, the "LOCK" icon on the course card transforms into "WATCH" instantly without a refresh.
 *   **Auto-Updating Stats**: Analytical cards and dashboard counters (e.g., course count, unread notifications) are bound to live Firestore counts, ensuring accuracy as data changes in the background.
 
-### 🛡️ Unified Management System (Admin)
-Admins now possess a **Global Oversight** view within the standard management screens:
-*   **Unified Upload Management**: The `DocumentUploadScreen` dynamically detects the `admin` role and displays **all** courses across the platform, while staff members see only their own content.
-*   **Centralized Settings**: Admin "Course Settings" are linked directly to this global management interface for streamlined content moderation.
+### 💳 Secure Razorpay Payment Flow
+The payment system is designed for high reliability and manual/automated hybrid verification:
+*   **Pre-Check**: Validates the student's cart before generating a payment request.
+*   **Idempotency**: Creates a "pending" payment record in Firestore *before* redirection to prevent lost transactions.
+*   **Bilingual UX**: Instructions provided in both Tamil and English to ensure students from all backgrounds understand the requirement to capture the Reference ID.
+*   **Proof Tracking**: Records the exact Reference ID and ties it to multiple course IDs, allowing for bulk approvals.
 
 ### 📊 Live Analytics System
 The **Analytics System** provides instructors with real-time insights into student engagement:
@@ -465,8 +501,9 @@ graph TD
     F -->|student| I[Student Dashboard]
 
     G --> G1[User Management]
-    G --> G2[Payment Approval]
-    G --> G3[Video Approval]
+    G --> G2[Payment Verification Panel]
+    G --> G3[Content Approval]
+    G2 -->|Approve| G4[Unlock Courses]
 
     H --> H1[Staff Course Screen]
     H1 --> H2[Upload PDF & Image]
@@ -477,8 +514,15 @@ graph TD
 
     I --> I1[Browse Courses]
     I --> I2["Continue Watching Card (last_video_id)"]
-    I1 --> I3[CourseContentDetailScreen]
+    I1 --> IC["Add to Cart"]
+    IC --> IS[CartScreen]
+    
+    IS --> IP["Bilingual Payment Notice"]
+    IP --> IR["Razorpay (External Payment)"]
+    IR --> IV["Submit Reference ID (In-App)"]
+    IV -->|Writes to payments| G2
 
+    I1 --> I3[CourseContentDetailScreen]
     I3 --> I4["Resume Card (START LESSON)"]
     I3 --> I5["Video List (WATCH)"]
 
@@ -503,6 +547,7 @@ graph TD
 
     I17 -.->|real-time| I12
     I18 -.->|push| H4
+    G4 -.->|Real-time Sync| I1
 ```
 
 ---
@@ -522,6 +567,8 @@ graph TD
 | `syncfusion_flutter_pdfviewer` | Native PDF rendering |
 | `shared_preferences` | Local progress caching |
 | `cached_network_image` | Efficient image loading |
+| `url_launcher` | Opening Razorpay payment links |
+| `intl` | Date and currency formatting |
 
 ---
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -10,28 +11,44 @@ class ProgressProvider with ChangeNotifier {
   // Track the user's progress instances in memory
   Map<String, CourseProgressModel> _myProgress = {};
   Map<String, CourseProgressModel> get myProgress => _myProgress;
+  StreamSubscription<QuerySnapshot>? _progressSubscription;
 
   // Track actual segments played (to prevent skipping to end)
   // Map<VideoDocId, Set<int>> to track seconds watched
   final Map<String, Set<int>> _watchedSeconds = {};
 
-  /// Fetches all course progress for a student.
-  Future<void> fetchStudentProgress(String studentId) async {
-    try {
-      final snap = await _firestore
-          .collection('course_progress')
-          .where('student_id', isEqualTo: studentId)
-          .get();
+  @override
+  void dispose() {
+    _progressSubscription?.cancel();
+    super.dispose();
+  }
 
-      _myProgress.clear();
-      for (var doc in snap.docs) {
-        final progress = CourseProgressModel.fromFirestore(doc);
-        _myProgress[progress.courseId] = progress;
-      }
-      notifyListeners();
-    } catch (e) {
-      debugPrint("Error fetching student progress: $e");
-    }
+  void clearListeners() {
+    _progressSubscription?.cancel();
+    _myProgress.clear();
+    notifyListeners();
+  }
+
+  /// Real-time stream for student progress.
+  void startListeningToStudentProgress(String studentId) {
+    _progressSubscription?.cancel();
+    _progressSubscription = _firestore
+        .collection('course_progress')
+        .where('student_id', isEqualTo: studentId)
+        .snapshots()
+        .listen(
+      (snap) {
+        _myProgress.clear();
+        for (var doc in snap.docs) {
+          final progress = CourseProgressModel.fromFirestore(doc);
+          _myProgress[progress.courseId] = progress;
+        }
+        notifyListeners();
+      },
+      onError: (e) {
+        debugPrint("Error listening to student progress: $e");
+      },
+    );
   }
 
   /// Get Local Storage key
@@ -171,8 +188,7 @@ class ProgressProvider with ChangeNotifier {
         await doc.reference.update(updates);
       }
 
-      // Update local memory
-      await fetchStudentProgress(studentId);
+      // Stream automatically updates local memory, no need to manually fetch
     } catch (e) {
       debugPrint("Error syncing to cloud: $e");
     }

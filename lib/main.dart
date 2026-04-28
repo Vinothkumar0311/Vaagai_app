@@ -10,6 +10,7 @@ import 'package:vaagai/providers/doubt_provider.dart';
 import 'package:vaagai/providers/notification_provider.dart';
 import 'package:vaagai/providers/progress_provider.dart';
 import 'package:vaagai/providers/cart_provider.dart';
+import 'package:vaagai/providers/payment_provider.dart';
 import 'package:vaagai/services/notification_service.dart';
 import 'core/routes/app_routes.dart';
 
@@ -43,6 +44,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ProgressProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
       ],
       child: const MyApp(),
     ),
