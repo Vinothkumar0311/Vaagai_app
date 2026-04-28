@@ -42,39 +42,43 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F6),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildAppBar(user),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildWelcomeHeader(user),
-                  const SizedBox(height: 24),
-                  _buildQuickStats(context, courseProvider.staffCourses.length),
-                  const SizedBox(height: 32),
-                  const Text(
-                    "எனது பாடங்கள் (My Courses)",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFF1E264D),
-                      letterSpacing: -0.5,
-                    ),
+      body: StreamBuilder<List<CourseModel>>(
+        stream: user != null ? courseProvider.streamStaffCourses(user.uid) : Stream.value([]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
+          final courses = snapshot.data ?? [];
+
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(user),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildWelcomeHeader(user),
+                      const SizedBox(height: 24),
+                      _buildQuickStats(context, courses.length),
+                      const SizedBox(height: 32),
+                      const Text(
+                        "எனது பாடங்கள் (My Courses)",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF1E264D),
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
-            ),
-          ),
-          courseProvider.isLoading
-              ? const SliverFillRemaining(
-                  child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-                )
-              : courseProvider.staffCourses.isEmpty
+              courses.isEmpty
                   ? SliverToBoxAdapter(child: _buildEmptyState())
                   : SliverPadding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -85,13 +89,15 @@ class _StaffDashboardScreenState extends State<StaffDashboardScreen> {
                           childAspectRatio: 2.2,
                         ),
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) => _CourseCard(course: courseProvider.staffCourses[index]),
-                          childCount: courseProvider.staffCourses.length,
+                          (context, index) => _CourseCard(course: courses[index]),
+                          childCount: courses.length,
                         ),
                       ),
                     ),
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.documentUpload),

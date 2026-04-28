@@ -16,11 +16,11 @@ class _CourseAnalyticsCardState extends State<CourseAnalyticsCard> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<QuerySnapshot>(
-      future: _firestore
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore
           .collection('course_progress')
           .where('course_id', isEqualTo: widget.courseId)
-          .get(),
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

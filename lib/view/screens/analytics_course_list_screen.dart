@@ -38,7 +38,6 @@ class _AnalyticsCourseListScreenState extends State<AnalyticsCourseListScreen> {
     final courseProvider = Provider.of<CourseProvider>(context);
     final bool isAdmin = auth.userModel?.role == 'admin';
 
-    List<CourseModel> courses = isAdmin ? courseProvider.allCourses : courseProvider.staffCourses;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
@@ -61,24 +60,35 @@ class _AnalyticsCourseListScreenState extends State<AnalyticsCourseListScreen> {
       ),
       body: _selectedCourseId != null
         ? SingleChildScrollView(child: CourseAnalyticsCard(courseId: _selectedCourseId!))
-        : courseProvider.isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : courses.isEmpty
-                ? const Center(child: Text("பாடங்கள் எதுவும் இல்லை"))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: courses.length,
-                    itemBuilder: (context, index) {
-                      final course = courses[index];
-                      return _AnalyticsCourseItem(
-                        course: course,
-                        onTap: () => setState(() {
-                          _selectedCourseId = course.id;
-                          _selectedCourseTitle = course.title;
-                        }),
-                      );
-                    },
-                  ),
+        : StreamBuilder<List<CourseModel>>(
+            stream: isAdmin ? courseProvider.streamAllCourses() : courseProvider.streamStaffCourses(auth.userModel?.uid ?? ''),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              final courses = snapshot.data ?? [];
+              
+              if (courses.isEmpty) {
+                return const Center(child: Text("பாடங்கள் எதுவும் இல்லை"));
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: courses.length,
+                itemBuilder: (context, index) {
+                  final course = courses[index];
+                  return _AnalyticsCourseItem(
+                    course: course,
+                    onTap: () => setState(() {
+                      _selectedCourseId = course.id;
+                      _selectedCourseTitle = course.title;
+                    }),
+                  );
+                },
+              );
+            },
+          ),
     );
   }
 }

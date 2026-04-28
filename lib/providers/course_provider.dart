@@ -46,6 +46,40 @@ class CourseProvider with ChangeNotifier {
     }
   }
 
+  Stream<List<CourseModel>> streamStaffCourses(String staffUid) {
+    return _firestore
+        .collection('course_uploads')
+        .where('createdBy', isEqualTo: staffUid)
+        .snapshots()
+        .map((snapshot) {
+      final courses = snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
+      courses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return courses;
+    });
+  }
+
+  Stream<List<CourseModel>> streamAllApprovedCourses() {
+    return _firestore
+        .collection('course_uploads')
+        .where('status', isEqualTo: 'approved')
+        .snapshots()
+        .map((snapshot) {
+      final courses = snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
+      courses.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return courses;
+    });
+  }
+
+  Stream<List<CourseModel>> streamAllCourses() {
+    return _firestore
+        .collection('course_uploads')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => CourseModel.fromFirestore(doc)).toList();
+    });
+  }
+
   Future<String?> createCourse({
     required String title,
     required String description,

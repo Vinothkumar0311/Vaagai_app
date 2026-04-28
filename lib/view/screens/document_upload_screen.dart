@@ -47,10 +47,12 @@ class DocumentUploadScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('course_uploads')
-              .where('createdBy', isEqualTo: user?.uid)
-              .snapshots(),
+          stream: user?.role == 'admin' 
+              ? FirebaseFirestore.instance.collection('course_uploads').snapshots()
+              : FirebaseFirestore.instance
+                  .collection('course_uploads')
+                  .where('createdBy', isEqualTo: user?.uid)
+                  .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(

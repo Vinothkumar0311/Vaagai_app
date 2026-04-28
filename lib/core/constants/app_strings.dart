@@ -47,6 +47,9 @@ class AppStrings {
   static const String accessMaterial = "ACCESS MATERIAL";
   static const String approvalPending = "ஒப்புதல் காத்திருக்கிறது...";
   static const String registerCourse = "பதிவு செய்யவும்";
+  static const String addToCart = "கூடையில் சேர்க்கவும்";
+  static const String goToCart = "கூடைக்குச் செல்";
+  static const String viewDetails = "விவரங்களைக் காண்க";
 
   // Payment/Registration Detail
   static const String paymentAppBar = "பாட பதிவு";
@@ -56,6 +59,9 @@ class AppStrings {
   static const String notesLabel = "கூடுதல் குறிப்பு (விரும்பினால்)";
   static const String notesHint = "கட்டண தகவல் அல்லது கேள்விகள்...";
   static const String submitRequestButton = "பதிவு கோரிக்கை அனுப்பு";
+  static const String bulkRequestButton = "அனுமதி கோரவும் (REQUEST UNLOCK)";
+  static const String cartTitle = "எனது கூடை (My Cart)";
+  static const String emptyCartMsg = "உங்களது கூடை காலியாக உள்ளது";
   static const String adminApprovalFooter = "நிர்வாகி ஒப்புதலுக்கு பிறகு பாடம் திறக்கப்படும்";
   static const String paymentMethodTitle = "கட்டண வழிமுறை";
   static const String step1 = "UPI / GPay மூலம் கட்டணம் செலுத்தவும்";

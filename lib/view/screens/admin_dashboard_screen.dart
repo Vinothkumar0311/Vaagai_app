@@ -139,7 +139,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       subtitle: 'பாடநெறிகளை நிர்வகிக்கவும் மற்றும் புதியவற்றைச் சேர்க்கவும்',
                       icon: Icons.menu_book_rounded,
                       color: Colors.orange.shade800,
-                      onTap: () {}, // Future feature
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.documentUpload),
                     ),
                     const SizedBox(height: 16),
                     _AdminSelectionCard(

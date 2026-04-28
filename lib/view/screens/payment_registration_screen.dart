@@ -12,6 +12,8 @@ import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
 import 'pdf_viewer_screen.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import '../../providers/cart_provider.dart';
+import '../../core/routes/app_routes.dart';
 
 /// Screen shown when a student taps on a locked course.
 /// Allows them to view the course details and submit a payment registration.
@@ -30,64 +32,10 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesCtrl = TextEditingController();
 
-  bool _isSubmitting = false;
-
   @override
   void dispose() {
     _notesCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final user = Provider.of<AuthProvider>(context, listen: false).userModel;
-    if (user == null) return;
-
-    setState(() => _isSubmitting = true);
-
-    final provider = Provider.of<CourseAccessProvider>(context, listen: false);
-
-    final error = await provider.registerCourseAccess(
-      studentId: user.uid,
-      studentName: user.name,
-      studentEmail: user.email,
-      courseId: widget.doc.id,
-      courseTitle: widget.doc.title,
-      paymentProofUrl: null, // Can integrate Drive upload here
-    );
-
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    if (error == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: _primary,
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  AppStrings.paymentSuccess,
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red.shade700,
-          content: Text(error, style: const TextStyle(color: Colors.white)),
-        ),
-      );
-    }
   }
 
   @override
@@ -228,40 +176,46 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
                   ),
                 )
               else
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            height: 22,
-                            width: 22,
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2.5),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.send_rounded, size: 20),
-                              SizedBox(width: 10),
-                              Text(
-                                AppStrings.submitRequestButton,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    letterSpacing: 0.3),
+                Consumer<CartProvider>(
+                  builder: (context, cart, _) {
+                    final inCart = cart.isInCart(widget.doc.id);
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (inCart) {
+                            Navigator.pushNamed(context, AppRoutes.cart);
+                          } else {
+                            cart.addToCart(widget.doc);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("${widget.doc.title} added to cart"),
+                                action: SnackBarAction(label: "VIEW CART", onPressed: () => Navigator.pushNamed(context, AppRoutes.cart)),
                               ),
-                            ],
-                          ),
-                  ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: inCart ? Colors.blue.shade700 : _primary,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(inCart ? Icons.shopping_cart_checkout : Icons.add_shopping_cart_rounded, size: 20),
+                            const SizedBox(width: 10),
+                            Text(
+                              inCart ? AppStrings.goToCart : AppStrings.addToCart,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.3),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                 ),
               const SizedBox(height: 16),
               Center(

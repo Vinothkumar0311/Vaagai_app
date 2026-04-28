@@ -15,6 +15,7 @@ import 'payment_registration_screen.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/dashboard_sections.dart';
 import 'student_doubts_screen.dart';
+import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -115,21 +116,45 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
           ),
           actions: [
+            Consumer<CartProvider>(
+              builder: (context, cart, _) => Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart_rounded, color: Colors.white),
+                    onPressed: () => Navigator.pushNamed(context, AppRoutes.cart),
+                    tooltip: 'My Cart',
+                  ),
+                  if (cart.count > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                        child: Text(
+                          '${cart.count}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
             IconButton(
               icon: const Icon(Icons.forum, color: Colors.white),
               tooltip: 'My Doubts',
-              onPressed: () =>
-                  Navigator.pushNamed(context, AppRoutes.studentDoubts),
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.studentDoubts),
             ),
             IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
+              tooltip: 'Logout',
               onPressed: () async {
-                final confirm =
-                    await DialogUtils.showLogoutConfirmation(context);
+                final confirm = await DialogUtils.showLogoutConfirmation(context);
                 if (confirm && context.mounted) {
-                  final authProvider =
-                      Provider.of<AuthProvider>(context, listen: false);
-                  authProvider.logout();
+                  Provider.of<AuthProvider>(context, listen: false).logout();
                   Navigator.pushReplacementNamed(context, '/login');
                 }
               },
@@ -259,8 +284,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                 .map((d) => UploadedDocument.fromFirestore(d))
                 .toList();
 
-            return Consumer2<CourseAccessProvider, ProgressProvider>(
-              builder: (context, accessProvider, progressProvider, _) {
+            return Consumer3<CourseAccessProvider, ProgressProvider, CartProvider>(
+              builder: (context, accessProvider, progressProvider, cartProvider, _) {
                 final user =
                     Provider.of<AuthProvider>(context, listen: false).userModel;
                 return SliverPadding(
@@ -275,6 +300,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         final hasAccess = user != null &&
                             accessProvider.isCourseAccessible(user.uid, doc.id);
                         final progress = progressProvider.myProgress[doc.id];
+                        final inCart = cartProvider.isInCart(doc.id);
 
                         return _CourseCard(
                           doc: doc,
@@ -282,6 +308,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           hasAccess: hasAccess,
                           accessRecord: accessRecord,
                           progress: progress,
+                          inCart: inCart,
                         );
                       },
                       childCount: docs.length,
@@ -399,6 +426,7 @@ class _CourseCard extends StatelessWidget {
   final bool hasAccess;
   final CourseAccessModel? accessRecord;
   final CourseProgressModel? progress;
+  final bool inCart;
 
   const _CourseCard({
     required this.doc,
@@ -406,6 +434,7 @@ class _CourseCard extends StatelessWidget {
     this.hasAccess = false,
     this.accessRecord,
     this.progress,
+    this.inCart = false,
   });
 
   @override
@@ -573,13 +602,26 @@ class _CourseCard extends StatelessWidget {
                                       lastTimestamp: progress?.lastTimestamp,
                                     )),
                           );
-                        } else {
+                        } else if (isPending) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
                                     PaymentRegistrationScreen(doc: doc)),
                           );
+                        } else {
+                          // Toggle Cart or Go to Details
+                          if (inCart) {
+                            Navigator.pushNamed(context, AppRoutes.cart);
+                          } else {
+                            Provider.of<CartProvider>(context, listen: false).addToCart(doc);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("${doc.title} added to cart"),
+                                action: SnackBarAction(label: "VIEW CART", onPressed: () => Navigator.pushNamed(context, AppRoutes.cart)),
+                              ),
+                            );
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -598,7 +640,7 @@ class _CourseCard extends StatelessWidget {
                                 ? Icons.play_arrow_rounded
                                 : isPending
                                     ? Icons.hourglass_top_rounded
-                                    : Icons.lock_open_rounded,
+                                    : inCart ? Icons.shopping_cart_checkout : Icons.add_shopping_cart_rounded,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
@@ -610,7 +652,7 @@ class _CourseCard extends StatelessWidget {
                                     : AppStrings.accessMaterial)
                                 : isPending
                                     ? AppStrings.approvalPending
-                                    : AppStrings.registerCourse,
+                                    : inCart ? AppStrings.goToCart : AppStrings.addToCart,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5),
@@ -619,6 +661,20 @@ class _CourseCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (!hasAccess && !isPending && !inCart)
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    PaymentRegistrationScreen(doc: doc)),
+                          );
+                        },
+                        child: Text(AppStrings.viewDetails, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
                 ],
               ),
             ),

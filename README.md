@@ -174,7 +174,9 @@ StudentDashboardScreen
     │       └── Reads last_video_id from ProgressProvider.myProgress
     │               └── Navigates to YouTubePlayerScreen with correct videoDocId + startAt timestamp
     │
-    └── Browse Courses ──► CourseDetailScreen ──► CourseContentDetailScreen
+    └── Browse Courses ──► Add to Cart (CartProvider) ──► CartScreen
+            │
+            └── Request Unlock (Bulk) ──► CourseAccessProvider ──► Admin Approval
 ```
 
 ### CourseContentDetailScreen Flow
@@ -318,6 +320,15 @@ bool durationReached  = (currentPosition   / totalDuration) >= 0.95;
 > That would erase the progress pointer that was already advanced to the next video.
 > Always check `completed.contains(videoId)` before writing `last_video_id`.
 
+### Student Enrollment Flow (Cart System)
+
+The app uses a cart-based system for course access requests to allow students to select multiple courses and request unlocking in a single batch.
+
+1. **Course Selection**: From the `StudentDashboardScreen`, students can add locked courses to their cart.
+2. **Review & Edit**: The `CartScreen` allows students to review their selections and remove items.
+3. **Bulk Request**: Tapping "REQUEST UNLOCK" in the cart iterates through all items and creates pending access records in the `course_access` collection via `CourseAccessProvider`.
+4. **Approval**: Access remains `pending` until an admin approves the request.
+
 ---
 
 ## 🔔 Notification Flow
@@ -338,6 +349,32 @@ Staff receives notification
             └── updates doubts/{doubtId}.staffReply + status="replied"
             └── Student sees reply in StudentDoubtsScreen (real-time stream)
 ```
+
+---
+
+---
+
+## ⚡ Reactive Architecture & Real-Time Sync
+
+The application has been modernized from a "Fetch-on-Load" pattern to a **Fully Reactive (Stream-Based)** architecture. This ensures that the UI always mirrors the source of truth in Firestore without requiring manual refreshes or page reloads.
+
+### 🔄 Real-Time Dashboard Synchronization
+*   **Staff Dashboard**: Now uses `StreamBuilder` on `course_uploads`. When a staff member publishes a new course via `DocumentUploadScreen`, it appears instantly in their "My Courses" list.
+*   **Student Dashboard**: Built with snapshots to show newly approved courses the moment they are greenlit by admins.
+*   **Auto-Updating Stats**: Analytical cards and dashboard counters (e.g., course count, unread notifications) are bound to live Firestore counts, ensuring accuracy as data changes in the background.
+
+### 🛡️ Unified Management System (Admin)
+Admins now possess a **Global Oversight** view within the standard management screens:
+*   **Unified Upload Management**: The `DocumentUploadScreen` dynamically detects the `admin` role and displays **all** courses across the platform, while staff members see only their own content.
+*   **Centralized Settings**: Admin "Course Settings" are linked directly to this global management interface for streamlined content moderation.
+
+### 📊 Live Analytics System
+The **Analytics System** provides instructors with real-time insights into student engagement:
+*   **Course Discovery**: The `AnalyticsCourseListScreen` uses reactive streams to show the latest course catalog.
+*   **Live Progress Tracking**: `CourseAnalyticsCard` tracks student progress as it happens. Instructors can see:
+    *   **Average Progress**: Live mean completion across all enrolled students.
+    *   **Engagement Distribution**: Real-time breakdown of students in different learning stages (0-25%, 25-50%, etc.).
+    *   **Drop-off Heatmaps**: Identifies specific videos where students stop watching, allowing instructors to refine content quality.
 
 ---
 
@@ -375,8 +412,10 @@ Staff receives notification
 
 These rules prevent known bugs that have been debugged and fixed. Violating them will reintroduce issues.
 
-### 1. Always Sort `course_videos` Before Indexing
+### 1. Prefer `StreamBuilder` for Dashboards
+Always use `courseProvider.streamStaffCourses(uid)` or `streamAllCourses()` for dashboard lists rather than one-time fetch methods. This prevents stale state and improves "perceived performance."
 
+### 2. Always Sort `course_videos` Before Indexing
 ```dart
 // ✅ CORRECT
 final docs = snapshot.data!.docs.toList();
@@ -385,35 +424,20 @@ docs.sort((a, b) {
   final bTime = (b.data() as Map)['createdAt'] as Timestamp?;
   return (aTime ?? Timestamp(0, 0)).compareTo(bTime ?? Timestamp(0, 0));
 });
-// Now use docs[index].id
-final videoDocId = docs[index].id;   // ✅
-
-// ❌ WRONG — Firestore order is non-deterministic
-final videoDocId = snapshot.data!.docs[index].id;  // ❌ BUG
 ```
 
-### 2. `videoId` in Doubts = Firestore Document ID
+### 3. `videoId` in Doubts = Firestore Document ID
+Always use the course_videos document ID when querying or submitting doubts, NOT the YouTube video string.
 
+### 4. Doubt Feed Must Be Keyed to `videoDocId`
 ```dart
-// ✅ CORRECT — use the course_videos document ID
-doubtProvider.submitDoubt(videoId: _currentVideoDocId, ...);
-
-// ❌ WRONG — do not use the YouTube video ID string
-doubtProvider.submitDoubt(videoId: _currentVideoId, ...);  // ❌ BUG
-```
-
-### 3. Doubt Feed Must Be Keyed to `videoDocId`
-
-```dart
-// ✅ CORRECT — key forces full widget rebuild on video change
 _GlobalDoubtsFeed(
   key: ValueKey(_currentVideoDocId),
   videoId: _currentVideoDocId,
 )
 ```
 
-### 4. Never Regress `last_video_id` on Re-Watch
-
+### 5. Never Regress `last_video_id` on Re-Watch
 ```dart
 // ✅ CORRECT — only update pointer if video is not already completed
 if (!completed.contains(videoId)) {
@@ -422,11 +446,8 @@ if (!completed.contains(videoId)) {
 }
 ```
 
-### 5. Use `_GlobalDoubtsFeed` as StatefulWidget
-
-The doubt feed is a `StatefulWidget` that owns its Firestore stream lifecycle.
-Do **not** convert it back to `StatelessWidget` — the stream must be owned and
-disposed by the widget's state, not shared via a provider with `listen: false`.
+### 6. Use `_GlobalDoubtsFeed` as StatefulWidget
+The doubt feed is a `StatefulWidget` that owns its Firestore stream lifecycle. Do **not** convert it back to `StatelessWidget` — the stream must be owned and disposed by the widget's state, not shared via a provider with `listen: false`.
 
 ---
 
@@ -505,6 +526,6 @@ graph TD
 ---
 
 <div align="center">
-  <p>Built with ❤️ by Vinothkumar0311 for the Vaagai Community</p>
+  <p>Built by Vinothkumar for the Vaagai Community</p>
   <sub>Premium Learning. Simplified.</sub>
 </div>
