@@ -18,6 +18,8 @@ import 'student_doubts_screen.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
 
+import 'student_profile_screen.dart';
+
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
 
@@ -56,8 +58,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             _buildHomeTab(user),
             _buildCoursesTab(),
             const StudentDoubtsScreen(),
-            _buildPlaceholderTab(
-                AppStrings.profileTab, Icons.person_outline_rounded),
+            const StudentProfileScreen(),
           ],
         ),
       ),
@@ -232,7 +233,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
           sliver: SliverToBoxAdapter(child: ForumSection()),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        const SliverToBoxAdapter(child: Divider(indent: 20, endIndent: 20, height: 40)),
+        const SliverPadding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
+          sliver: SliverToBoxAdapter(child: SocialMediaSection()),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 150)),
       ],
     );
   }

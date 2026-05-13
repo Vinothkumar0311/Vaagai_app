@@ -3,16 +3,16 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "vaagaiapp-3c760",
-          "appId": "1:974007969277:android:d65f0332f3fb70231d6594",
+          "projectId": "vaagaiapp-92a96",
+          "appId": "1:750268120139:android:2713fe351eda29f2b8e1ce",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "vaagaiapp-3c760",
+          "projectId": "vaagaiapp-92a96",
           "configurations": {
-            "android": "1:974007969277:android:d65f0332f3fb70231d6594",
+            "android": "1:750268120139:android:2713fe351eda29f2b8e1ce",
             "web": "1:974007969277:web:240abcdf902008f31d6594",
             "windows": "1:974007969277:web:1417e04916066d3e1d6594"
           }

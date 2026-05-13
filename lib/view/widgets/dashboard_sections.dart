@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
 
 class AboutSection extends StatelessWidget {
@@ -250,17 +251,37 @@ class ApprovalsSection extends StatelessWidget {
       {
         'name': 'தமிழ்நாடு அரசு',
         'reg': 'SRG/நாமக்கல்/143/2022',
-        'desc': '1975ஆம் ஆண்டு தமிழ்நாடு சங்கங்கள் பதிவுச்சட்டத்தின் கீழ் பதிவு செய்யப்பட்டது.'
+        'desc': 'தமிழ்நாட்டு அரசின் - 1975ஆம் ஆண்டு தமிழ்நாடு சங்கங்கள் பதிவுச்சட்டத்தின் கீழ் (சட்டம் 27/1975) பதிவு செய்யப்பட்டது.'
       },
       {
-        'name': 'MSME',
+        'name': 'MSME (மத்திய அரசு)',
         'reg': 'UDYAM-TN-14-0037173',
-        'desc': 'மத்திய அரசின் நுண்ணிய, சிறு மற்றும் நடுத்தர நிறுவன அமைச்சகத்தின் கீழ் பதிவு செய்யப்பட்டது.'
+        'desc': 'மத்திய அரசின் MSME அமைச்சகத்தின் தேசிய தொழில் வகைப்பாட்டு திட்டத்தின் கீழ் (கல்வி ஆதரவு சேவைகள்) பதிவு.'
       },
       {
-        'name': 'AICTE',
+        'name': 'AICTE (மத்திய அரசு)',
         'reg': 'CORPORATE63C3E52AAD72',
-        'desc': 'அகில இந்திய தொழில்நுட்பக் கல்வி சபையின் (AICTE) பயிற்சி வழங்குநர் பதிவு.'
+        'desc': 'அகில இந்திய தொழில்நுட்பக் கல்வி சபையின் (AICTE) அதிகாரபூர்வ பயிற்சி வழங்குநர் (Internship Provider) பதிவு.'
+      },
+      {
+        'name': 'மதுரை உலக தமிழ்ச் சங்கம்',
+        'reg': 'UTS / TN 126',
+        'desc': 'மதுரை உலக தமிழ்ச் சங்கத்தின் அதிகாரபூர்வ உறுப்பினர் (உறுப்பினர் எண்: UTS / TN 126).'
+      },
+      {
+        'name': 'NCS (தொழில் சேவை)',
+        'reg': 'S17L69-1517358106310',
+        'desc': 'மத்திய அரசின் தொழிலாளர் மற்றும் வேலைவாய்ப்பு அமைச்சகத்தின் தேசிய தொழில் சேவை திட்டத்தின் கீழ் பதிவு.'
+      },
+      {
+        'name': 'NITI Aayog (மத்திய அரசு)',
+        'reg': 'TN/2021/0282436',
+        'desc': 'மத்திய அரசின் நிதி ஆயோக் திட்டத்தின் கீழ் இயங்கி வரும் அரசு சாரா அமைப்புகளின் கண்ணாடி (NGO Darpan) பதிவு.'
+      },
+      {
+        'name': 'ISBN (RRRNA)',
+        'reg': 'RRRNA for ISBN',
+        'desc': 'ராஜா ராம்மோஹன் ராய் தேசிய புத்தக வெளியீட்டு நிறுவனம் மூலம் புத்தகம் வெளியிடுதல் திட்டத்தில் பதிவு.'
       }
     ];
 
@@ -280,7 +301,7 @@ class ApprovalsSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         SizedBox(
-          height: 180,
+          height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: recognitions.length,
@@ -288,17 +309,17 @@ class ApprovalsSection extends StatelessWidget {
             itemBuilder: (context, index) {
               final item = recognitions[index];
               return Container(
-                width: 280,
-                padding: const EdgeInsets.all(20),
+                width: 300,
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.1)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+                      color: AppColors.primary.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -359,22 +380,39 @@ class ForumSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final forums = [
       {
-        'title': 'மழலையர் மன்றம்',
-        'desc': 'குழந்தைகள் அறிய வேண்டிய நீதிக்கதைகள் மற்றும் கதை ஞாயிறு நிகழ்வுகள்.',
-        'icon': Icons.child_care_rounded,
-        'color': const Color(0xFFE91E63),
-      },
-      {
-        'title': 'மகளிர் மன்றம்',
-        'desc': 'பெண்களின் தனித்திறனை வெளிக்கொணரும் பொருட்டும், தமிழ்த்திறனை மேம்படுத்தவும்.',
-        'icon': Icons.woman_rounded,
-        'color': const Color(0xFF9C27B0),
-      },
-      {
-        'title': 'பனுவல் மன்றம்',
-        'desc': 'புத்தகம் வாசிக்கும் பழக்கத்தை ஏற்படுத்தவும், இலக்கியங்களை எளிய முறையில் அறிமுகப்படுத்தவும்.',
+        'title': 'வாகை பனுவல் மன்றம்',
+        'desc': 'இலக்கிய வாசிப்பு மற்றும் கலந்துரையாடல் மூலம் அறிவை மேம்படுத்துதல்.',
         'icon': Icons.menu_book_rounded,
         'color': const Color(0xFF2196F3),
+        'image': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=500&auto=format&fit=crop',
+      },
+      {
+        'title': 'வாகை மழலையர் மன்றம்',
+        'desc': 'குழந்தைகளின் தமிழ்த்திறன் வளர்ச்சி மற்றும் நீதிக்கதைகள் வாயிலாக அறம் வளர்த்தல்.',
+        'icon': Icons.child_care_rounded,
+        'color': const Color(0xFFE91E63),
+        'image': 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?q=80&w=500&auto=format&fit=crop',
+      },
+      {
+        'title': 'வாகை மகளிர் மன்றம்',
+        'desc': 'பெண்களின் தனித்திறனை வெளிக்கொணரவும், சமூகத்தில் அவர்களின் பங்களிப்பை ஊக்குவிக்கவும்.',
+        'icon': Icons.woman_rounded,
+        'color': const Color(0xFF9C27B0),
+        'image': 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?q=80&w=500&auto=format&fit=crop',
+      },
+      {
+        'title': 'வாகை குறள் மன்றம்',
+        'desc': 'திருக்குறள் நெறிமுறைகளை வாழ்வியலோடு இணைத்து அறம் சார்ந்த சமூகம் படைத்தல்.',
+        'icon': Icons.history_edu_rounded,
+        'color': const Color(0xFFFF5722),
+        'image': 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?q=80&w=500&auto=format&fit=crop',
+      },
+      {
+        'title': 'வாகை மாணாக்கர் மன்றம்',
+        'desc': 'மாணவர்களின் பன்முகத் திறன்களை வளர்த்தெடுத்து வருங்காலத் தலைவர்களாக உருவாக்குதல்.',
+        'icon': Icons.school_rounded,
+        'color': const Color(0xFF4CAF50),
+        'image': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=500&auto=format&fit=crop',
       },
     ];
 
@@ -386,98 +424,275 @@ class ForumSection extends StatelessWidget {
           child: Text(
             'மன்றம் (Forum / Community)',
             style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: AppColors.primary,
+              letterSpacing: -0.5,
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.75,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: forums.length,
+          itemBuilder: (context, index) {
+            final forum = forums[index];
+            return _MandramCard(forum: forum);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _MandramCard extends StatelessWidget {
+  final Map<String, dynamic> forum;
+
+  const _MandramCard({required this.forum});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = forum['color'] as Color;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 5,
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                    ),
+                    child: Image.network(
+                      forum['image'] as String,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [color.withOpacity(0.8), color],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: Icon(
+                          forum['icon'] as IconData,
+                          size: 40,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.7),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 10,
+                    left: 12,
+                    right: 12,
+                    child: Text(
+                      forum['title'] as String,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      forum['desc'] as String,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                        height: 1.3,
+                      ),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Text(
+                          'மேலும் அறிய',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 12,
+                          color: color,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SocialMediaSection extends StatelessWidget {
+  const SocialMediaSection({super.key});
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $urlString');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final socialPlatforms = [
+      {
+        'name': 'Facebook',
+        'icon': Icons.facebook_rounded,
+        'color': const Color(0xFF1877F2),
+        'url': 'https://www.facebook.com/share/1Cq47zBFS3/?mibextid=wwXIfr'
+      },
+      {
+        'name': 'Instagram',
+        'icon': Icons.camera_alt_rounded,
+        'color': const Color(0xFFE4405F),
+        'url': 'https://www.instagram.com/vaagaitamilsangam?igsh=MWI3MjRvMnpmcDJ1Yw%3D%3D&utm_source=qr'
+      },
+      {
+        'name': 'LinkedIn',
+        'icon': Icons.business_rounded,
+        'color': const Color(0xFF0A66C2),
+        'url': 'https://www.linkedin.com/company/%E0%AE%B5%E0%AE%BE%E0%AE%95%E0%AF%88-%E0%AE%A4%E0%AE%AE%E0%AE%BF%E0%AE%B4%E0%AF%8D%E0%AE%9A%E0%AF%8D%E0%AE%9A%E0%AE%99%E0%AF%8D%E0%AE%95%E0%AE%AE%E0%AF%8D/'
+      },
+      {
+        'name': 'WhatsApp',
+        'icon': Icons.chat_rounded,
+        'color': const Color(0xFF25D366),
+        'url': 'https://whatsapp.com/channel/0029Vb7qrzV30LKUarhSNJ0j'
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4),
+          child: Text(
+            'சமூக வலைதளங்கள் (Follow Us)',
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
             ),
           ),
         ),
-        const SizedBox(height: 16),
-        // Announcement Card
+        const SizedBox(height: 20),
         Container(
-          margin: const EdgeInsets.only(bottom: 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1B5E20), Color(0xFF4CAF50)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                   Icon(Icons.campaign_rounded, color: Colors.white, size: 24),
-                   SizedBox(width: 10),
-                   Text(
-                    'அறிவிப்பு',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
-              ),
-              SizedBox(height: 12),
-              Text(
-                'புதிய இலக்கியப் போட்டி அடுத்த மாதம் தொடங்க உள்ளது. ஆர்வமுள்ள மாணவர்கள் தயார் நிலையில் இருக்கவும்!',
-                style: TextStyle(color: Colors.white, fontSize: 14, height: 1.4),
-              ),
-            ],
-          ),
-        ),
-        ...forums.map((forum) => Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: (forum['color'] as Color).withOpacity(0.1)),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: (forum['color'] as Color).withOpacity(0.1),
-                child: Icon(forum['icon'] as IconData, color: forum['color'] as Color),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      forum['title'] as String,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: forum['color'] as Color,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      forum['desc'] as String,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
             ],
           ),
-        )),
+          child: Wrap(
+            alignment: WrapAlignment.spaceAround,
+            runSpacing: 20,
+            spacing: 20,
+            children: socialPlatforms.map((platform) => _buildSocialIcon(
+              platform['name'] as String,
+              platform['icon'] as IconData,
+              platform['color'] as Color,
+              platform['url'] as String,
+            )).toList(),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildSocialIcon(String name, IconData icon, Color color, String url) {
+    return GestureDetector(
+      onTap: () => _launchUrl(url),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

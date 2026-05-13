@@ -12,7 +12,7 @@
 
 ## 🔥 Overview
 
-**Vaagai** is a premium cross-platform educational application built with Flutter + Firebase. It enables staff to create and manage video-based courses, and students to watch lessons, track progress, and interact with instructors through an async doubt system. The app features a secure **Razorpay-integrated** checkout flow for course access.
+**Vaagai** is a premium cross-platform educational application built with Flutter + Firebase. It enables staff to create and manage video-based courses, and students to watch lessons, track progress, manage their profiles, and interact with instructors through an async doubt system. The app features a secure **Razorpay-integrated** checkout flow for course access.
 
 The architecture uses the **Provider** pattern for state management, **Firestore** as the real-time backend, and a strict separation between UI views, providers, services, and data models. It is built for **real-time synchronization**, ensuring data is always live without page reloads.
 
@@ -45,6 +45,9 @@ lib/
 │
 ├── view/
 │   ├── screens/            # All UI screens (one per feature)
+│   │   ├── student_dashboard_screen.dart
+│   │   ├── student_profile_screen.dart
+│   │   └── ...
 │   └── widgets/            # Reusable UI components
 │
 ├── firebase_options.dart
@@ -208,6 +211,10 @@ StudentDashboardScreen
     └── Browse Courses ──► Add to Cart (CartProvider) ──► CartScreen
             │
             └── Request Unlock (Checkout) ──► PaymentProvider (Razorpay) ──► Admin Approval
+
+    └── Profile Tab ──► View User Details (StudentProfileScreen)
+            │
+            └── Edit Profile (Placeholder) & Logout
 ```
 
 ### CourseContentDetailScreen Flow
@@ -521,6 +528,10 @@ graph TD
     IP --> IR["Razorpay (External Payment)"]
     IR --> IV["Submit Reference ID (In-App)"]
     IV -->|Writes to payments| G2
+
+    I --> I19[StudentProfileScreen]
+    I19 --> I20[View Name, Email, Phone, WhatsApp]
+    I19 --> I21[Edit & Logout Buttons]
 
     I1 --> I3[CourseContentDetailScreen]
     I3 --> I4["Resume Card (START LESSON)"]

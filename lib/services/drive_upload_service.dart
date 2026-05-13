@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 /// Chunks large files and tracks each chunk's Drive fileId for reliable reassembly.
 class DriveUploadService {
   static const String _scriptUrl =
-      'https://script.google.com/macros/s/AKfycbzc_YMcrZxzp7F5W7aZdqiYiv2t37iNeY-I9jF92FiTEej4mH_q9D_rAQBtvuY8t1v9/exec';
+      'https://script.google.com/macros/s/AKfycbzZMuGI_W5rmFeY1wCTsR1mAqjA0QZHtvpCnymvbKoNTScnKYkCTECYoTKEICwUaDJS/exec';
 
   // Max base64 chars per chunk (~900KB binary → safe under 2MB POST limit)
   static const int _chunkSize = 1200000;

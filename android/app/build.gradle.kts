@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vaagai"
+    namespace = "com.vaagai.vaagai_app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.vaagai"
+        applicationId = "com.vaagai.vaagai_app"
         // minSdk 21 = Android 5.0. Required for:
         //   • FCM background delivery (WAKE_LOCK, JobScheduler)
         //   • Notification channels (shown correctly on all devices)

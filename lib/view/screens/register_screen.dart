@@ -4,6 +4,7 @@ import 'package:vaagai/core/constants/app_colors.dart';
 import 'package:vaagai/core/constants/app_strings.dart';
 import 'package:vaagai/core/routes/app_routes.dart';
 import '../../providers/auth_provider.dart';
+import 'package:country_code_picker/country_code_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -26,9 +27,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _showPassword = false;
   bool _showConfirmPassword = false;
   String _countryCode = '+91';
-  final List<String> _countryCodes = [
-    '+91', '+1', '+44', '+971', '+65', '+60', '+61', '+49', '+33', '+81'
-  ];
 
   @override
   void dispose() {
@@ -473,22 +471,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
       children: [
         Container(
           height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.grey.shade200),
           ),
-          child: DropdownButton<String>(
-            value: _countryCode,
-            underline: const SizedBox(),
-            items: _countryCodes
-                .map((code) => DropdownMenuItem(
-                    value: code,
-                    child: Text(code,
-                        style: const TextStyle(fontWeight: FontWeight.w600))))
-                .toList(),
-            onChanged: (val) => setState(() => _countryCode = val!),
+          child: CountryCodePicker(
+            onChanged: (country) => setState(() => _countryCode = country.dialCode ?? '+91'),
+            initialSelection: 'IN',
+            favorite: const ['+91', 'IN'],
+            showCountryOnly: false,
+            showOnlyCountryWhenClosed: false,
+            alignLeft: false,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            textStyle: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800),
           ),
         ),
         const SizedBox(width: 10),
