@@ -7,6 +7,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import 'youtube_player_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/progress_provider.dart';
+import '../../core/utils/youtube_utils.dart';
 
 class CourseContentDetailScreen extends StatelessWidget {
   final UploadedDocument doc;
@@ -340,15 +341,10 @@ class CourseContentDetailScreen extends StatelessWidget {
 
                                   // Extract Thumbnail
                                   String? thumbUrl;
-                                  final uri = Uri.tryParse(url);
-                                  if (uri != null) {
-                                    String? videoId =
-                                        YoutubePlayerController.convertUrlToId(
-                                            url);
-                                    if (videoId != null) {
-                                      thumbUrl =
-                                          'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
-                                    }
+                                  final videoId = YoutubeUtils.convertUrlToId(url);
+                                  if (videoId != null) {
+                                    thumbUrl =
+                                        'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
                                   }
 
                                   return Container(

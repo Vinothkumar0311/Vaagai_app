@@ -14,6 +14,7 @@ import 'pdf_viewer_screen.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
+import '../../core/utils/youtube_utils.dart';
 
 /// Screen shown when a student taps on a locked course.
 /// Allows them to view the course details and submit a payment registration.
@@ -496,12 +497,10 @@ class _DemoVideosSection extends StatelessWidget {
                 final video = videos[i];
                 
                 String? thumbUrl;
-                try {
-                  String? videoId = YoutubePlayerController.convertUrlToId(video.youtubeUrl);
-                  if (videoId != null) {
-                    thumbUrl = 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
-                  }
-                } catch (_) {}
+                final videoId = YoutubeUtils.convertUrlToId(video.youtubeUrl);
+                if (videoId != null) {
+                  thumbUrl = 'https://img.youtube.com/vi/$videoId/mqdefault.jpg';
+                }
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),

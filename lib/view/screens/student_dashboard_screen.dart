@@ -13,7 +13,6 @@ import '../widgets/course_widgets.dart';
 import 'course_content_detail_screen.dart';
 import 'payment_registration_screen.dart';
 import '../widgets/dialogs.dart';
-import '../widgets/dashboard_sections.dart';
 import 'student_doubts_screen.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
@@ -47,15 +46,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthProvider>(context).userModel;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFCF9F0),
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
           children: [
-            _buildHomeTab(user),
             _buildCoursesTab(),
             const StudentDoubtsScreen(),
             const StudentProfileScreen(),
@@ -67,7 +63,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildHomeTab(user) {
+
+
+  Widget _buildCoursesTab() {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -81,7 +79,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             titlePadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             title: const Text(
-              "வாகை முகப்பு",
+              "வாகை பாடங்கள்",
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -145,11 +143,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.forum, color: Colors.white),
-              tooltip: 'My Doubts',
-              onPressed: () => Navigator.pushNamed(context, AppRoutes.studentDoubts),
-            ),
-            IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               tooltip: 'Logout',
               onPressed: () async {
@@ -162,98 +155,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
             ),
             const SizedBox(width: 8),
           ],
-        ),
-        SliverToBoxAdapter(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(32),
-                bottomRight: Radius.circular(32),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: _primaryGreen.withOpacity(0.1),
-                  child:
-                      const Icon(Icons.person, color: _primaryGreen, size: 36),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${AppStrings.welcomeMessage}${user?.name ?? ""}',
-                        style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'வாகை தமிழ்ச்சங்கத்திற்கு வரவேற்கிறோம்',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: _primaryGreen,
-                            letterSpacing: -0.5,
-                            height: 1.1),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
-          sliver: SliverToBoxAdapter(child: AboutSection()),
-        ),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
-          sliver: SliverToBoxAdapter(child: VisionMissionSection()),
-        ),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
-          sliver: SliverToBoxAdapter(child: ApprovalsSection()),
-        ),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 24, 16, 0),
-          sliver: SliverToBoxAdapter(child: ForumSection()),
-        ),
-        const SliverToBoxAdapter(child: Divider(indent: 20, endIndent: 20, height: 40)),
-        const SliverPadding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 24),
-          sliver: SliverToBoxAdapter(child: SocialMediaSection()),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 150)),
-      ],
-    );
-  }
-
-  Widget _buildCoursesTab() {
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverAppBar(
-          title: const Text(AppStrings.coursesTab,
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: _primaryGreen)),
-          backgroundColor: Colors.white,
-          pinned: true,
-          elevation: 0,
         ),
         const SliverToBoxAdapter(
           child: Padding(
@@ -330,22 +231,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     );
   }
 
-  Widget _buildPlaceholderTab(String title, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 80, color: _primaryGreen.withOpacity(0.2)),
-          const SizedBox(height: 16),
-          Text(title,
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey)),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildEmptyState() {
     return Center(
@@ -382,11 +268,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(Icons.home_rounded, AppStrings.homeTab, 0),
-          _navItem(Icons.menu_book_rounded, AppStrings.coursesTab, 1),
+          _navItem(Icons.menu_book_rounded, AppStrings.coursesTab, 0),
           _navItem(
-              Icons.notifications_none_rounded, AppStrings.notificationsTab, 2),
-          _navItem(Icons.person_outline_rounded, AppStrings.profileTab, 3),
+              Icons.notifications_none_rounded, AppStrings.notificationsTab, 1),
+          _navItem(Icons.person_outline_rounded, AppStrings.profileTab, 2),
         ],
       ),
     );

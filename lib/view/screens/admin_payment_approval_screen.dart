@@ -71,7 +71,6 @@ class _PaymentList extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('payments')
           .where('status', whereIn: statusFilters)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -95,7 +94,8 @@ class _PaymentList extends StatelessWidget {
 
         final records = snapshot.data!.docs
             .map((d) => PaymentRecordModel.fromFirestore(d))
-            .toList();
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),

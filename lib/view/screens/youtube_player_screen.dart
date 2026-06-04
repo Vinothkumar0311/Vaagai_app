@@ -11,6 +11,7 @@ import 'package:vaagai/providers/doubt_provider.dart';
 import 'package:vaagai/providers/progress_provider.dart';
 import 'dart:async';
 import '../../core/models/doubt_model.dart';
+import '../../core/utils/youtube_utils.dart';
 
 class YouTubePlayerScreen extends StatefulWidget {
   final String videoUrl;
@@ -277,16 +278,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
   }
 
   void _extractVideoId() {
-    String? id = yt_iframe.YoutubePlayerController.convertUrlToId(_currentUrl);
-    id ??= yt_flutter.YoutubePlayer.convertUrlToId(_currentUrl);
-
-    if (id == null && _currentUrl.contains('/shorts/')) {
-      final match =
-          RegExp(r'shorts/([a-zA-Z0-9_-]+)').firstMatch(_currentUrl);
-      if (match != null) id = match.group(1);
-    }
-    
-    _currentVideoId = id ?? '';
+    _currentVideoId = YoutubeUtils.convertUrlToId(_currentUrl) ?? '';
   }
 
   void _initIframeController() {
@@ -319,6 +311,7 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
         mute: false,
         enableCaption: true,
         forceHD: true,
+        disableDragSeek: true, // Disables sliding finger horizontally on player to seek/drag
       ),
     );
     // seek if required
@@ -376,6 +369,17 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
         builder: (context, player) => _buildScaffoldContext(player),
       );
     }
+
+    if (_flutterController != null) {
+      return yt_flutter.YoutubePlayerBuilder(
+        player: yt_flutter.YoutubePlayer(
+          controller: _flutterController!,
+          showVideoProgressIndicator: true,
+        ),
+        builder: (context, player) => _buildScaffoldContext(player),
+      );
+    }
+
     return _buildScaffoldContext(_buildPlayer());
   }
 

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../core/models/course_access_model.dart';
 import '../core/models/course_video_model.dart';
+import '../core/utils/youtube_utils.dart';
 
 /// Provider managing:
 ///  1. Course Access/Payment workflow (student register, admin approve/reject)
@@ -414,20 +415,7 @@ class CourseAccessProvider with ChangeNotifier {
   // ─── HELPERS ─────────────────────────────────────────────────────────────
 
   bool _isValidYouTubeUrl(String url) {
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null) return false;
-    // youtu.be/xxx or youtube.com/watch?v=xxx or youtube.com/shorts/xxx
-    final isYouTubeDomain = uri.host == 'youtu.be' ||
-        uri.host == 'www.youtube.com' ||
-        uri.host == 'youtube.com' ||
-        uri.host == 'm.youtube.com';
-    if (!isYouTubeDomain) return false;
-    // Must have a video ID
-    if (uri.host == 'youtu.be') {
-      return uri.pathSegments.isNotEmpty;
-    }
-    return uri.queryParameters.containsKey('v') ||
-        uri.pathSegments.contains('shorts');
+    return YoutubeUtils.isValidYouTubeUrl(url);
   }
 
   void _setLoading(bool v) {
