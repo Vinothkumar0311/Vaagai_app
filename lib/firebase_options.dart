@@ -47,13 +47,13 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBiVOm8vLowMun-Ax4OHGPoVy4NSIQE87Y',
-    appId: '1:974007969277:web:240abcdf902008f31d6594',
-    messagingSenderId: '974007969277',
-    projectId: 'vaagaiapp-3c760',
-    authDomain: 'vaagaiapp-3c760.firebaseapp.com',
-    databaseURL: 'https://vaagaiapp-3c760-default-rtdb.firebaseio.com',
-    storageBucket: 'vaagaiapp-3c760.firebasestorage.app',
+    apiKey: 'AIzaSyDt3kFIHUMRuz19hMhrkffR3TC52MfEIak',
+    appId: '1:750268120139:web:4a173611e5e44d99b8e1ce',
+    messagingSenderId: '750268120139',
+    projectId: 'vaagaiapp-92a96',
+    authDomain: 'vaagaiapp-92a96.firebaseapp.com',
+    databaseURL: 'https://vaagaiapp-92a96-default-rtdb.firebaseio.com',
+    storageBucket: 'vaagaiapp-92a96.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -66,13 +66,13 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBiVOm8vLowMun-Ax4OHGPoVy4NSIQE87Y',
-    appId: '1:974007969277:web:1417e04916066d3e1d6594',
-    messagingSenderId: '974007969277',
-    projectId: 'vaagaiapp-3c760',
-    authDomain: 'vaagaiapp-3c760.firebaseapp.com',
-    databaseURL: 'https://vaagaiapp-3c760-default-rtdb.firebaseio.com',
-    storageBucket: 'vaagaiapp-3c760.firebasestorage.app',
+    apiKey: 'AIzaSyDt3kFIHUMRuz19hMhrkffR3TC52MfEIak',
+    appId: '1:750268120139:web:4a173611e5e44d99b8e1ce',
+    messagingSenderId: '750268120139',
+    projectId: 'vaagaiapp-92a96',
+    authDomain: 'vaagaiapp-92a96.firebaseapp.com',
+    databaseURL: 'https://vaagaiapp-92a96-default-rtdb.firebaseio.com',
+    storageBucket: 'vaagaiapp-92a96.firebasestorage.app',
   );
 
 }
