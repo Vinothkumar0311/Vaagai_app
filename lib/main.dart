@@ -71,7 +71,14 @@ class MyApp extends StatelessWidget {
       ),
       builder: (context, child) {
         if (kIsWeb) {
-          return child!;
+          final mediaQueryData = MediaQuery.of(context);
+          final isWide = mediaQueryData.size.width >= 900;
+          return MediaQuery(
+            data: mediaQueryData.copyWith(
+              textScaler: TextScaler.linear(isWide ? 1.25 : 1.0),
+            ),
+            child: child!,
+          );
         }
         return Container(
           color: Colors.grey.shade900,
