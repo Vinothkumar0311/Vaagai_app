@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_colors.dart';
+import 'safe_network_image.dart';
 
 class AboutSection extends StatelessWidget {
   const AboutSection({super.key});
@@ -487,23 +488,9 @@ class _MandramCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: color.withOpacity(0.1),
                     ),
-                    child: Image.network(
-                      forum['image'] as String,
+                    child: SafeNetworkImage(
+                      imageUrl: forum['image'] as String,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [color.withOpacity(0.8), color],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Icon(
-                          forum['icon'] as IconData,
-                          size: 40,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
                     ),
                   ),
                   Positioned.fill(

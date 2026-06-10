@@ -19,6 +19,7 @@ import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
 
 import 'student_profile_screen.dart';
+import '../widgets/safe_network_image.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -661,17 +662,9 @@ class _CourseCard extends StatelessWidget {
                   width: double.infinity,
                   color: Colors.indigo.shade50,
                   child: displayUrl != null
-                      ? Image.network(
-                          displayUrl,
+                      ? SafeNetworkImage(
+                          imageUrl: displayUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          },
-                          errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.school_rounded,
-                                  size: 48, color: Color(0xFF1B5E20))),
                         )
                       : const Center(
                           child: Icon(Icons.school_rounded,

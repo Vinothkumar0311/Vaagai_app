@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/models/course_access_model.dart';
 import '../../core/models/course_video_model.dart';
+import 'safe_network_image.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATUS CHIP
@@ -236,13 +237,9 @@ class VideoThumbnailCard extends StatelessWidget {
                     width: double.infinity,
                     color: Colors.grey.shade100,
                     child: thumbUrl != null
-                        ? Image.network(
-                            thumbUrl,
+                        ? SafeNetworkImage(
+                            imageUrl: thumbUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.play_circle_outline,
-                                  size: 48, color: Colors.grey),
-                            ),
                           )
                         : const Center(
                             child: Icon(Icons.play_circle_outline,

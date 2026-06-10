@@ -10,6 +10,7 @@ import '../widgets/course_widgets.dart';
 import '../widgets/course_analytics_card.dart';
 import 'youtube_player_screen.dart';
 import 'pdf_viewer_screen.dart';
+import '../widgets/safe_network_image.dart';
 
 
 class StaffCourseDetailScreen extends StatefulWidget {
@@ -405,15 +406,9 @@ class _StaffCourseDetailScreenState extends State<StaffCourseDetailScreen> {
       width: double.infinity,
       color: Colors.grey.shade100,
       child: url != null
-          ? Image.network(
-              url,
+          ? SafeNetworkImage(
+              imageUrl: url,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20)));
-              },
-              errorBuilder: (_, __, ___) => const Center(
-                  child: Icon(Icons.image, size: 50, color: Colors.grey)),
             )
           : const Center(
               child: Icon(Icons.school, size: 50, color: Colors.grey)),
