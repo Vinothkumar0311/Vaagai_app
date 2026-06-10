@@ -43,11 +43,9 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.vaagai.vaagai_app"
-        // minSdk 21 = Android 5.0. Required for:
-        //   • FCM background delivery (WAKE_LOCK, JobScheduler)
-        //   • Notification channels (shown correctly on all devices)
-        //   • Covers 99%+ of active Android devices globally
-        minSdk = flutter.minSdkVersion
+        // minSdk 23 = Android 6.0. Required for:
+        //   • Firebase Auth 24.0.1+ which requires minSdk 23
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

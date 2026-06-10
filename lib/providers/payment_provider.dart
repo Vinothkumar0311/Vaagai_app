@@ -84,12 +84,14 @@ class PaymentProvider with ChangeNotifier {
     required String paymentId,
     required String screenshotUrl,
     required String paymentReferenceId,
+    required String paymentDate,
   }) async {
     try {
       await _db.collection('payments').doc(paymentId).update({
         'status': 'verification_pending',
         'paymentScreenshotUrl': screenshotUrl,
         'submittedPaymentRef': paymentReferenceId,
+        'paymentDate': paymentDate,
         'submittedAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });

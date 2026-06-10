@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vaagai/core/constants/app_strings.dart';
 import '../../core/utils/drive_utils.dart';
@@ -45,6 +46,14 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
     final accessProvider = Provider.of<CourseAccessProvider>(context);
     final accessRecord = user != null ? accessProvider.accessRecordFor(widget.doc.id) : null;
     final isPending = accessRecord?.paymentStatus == PaymentStatus.pending;
+
+    bool showContactAdmin = false;
+    if (isPending && accessRecord != null) {
+      final diff = DateTime.now().difference(accessRecord.createdAt);
+      if (diff.inHours >= 48) {
+        showContactAdmin = true;
+      }
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
@@ -173,6 +182,33 @@ class _PaymentRegistrationScreenState extends State<PaymentRegistrationScreen> {
                         AppStrings.adminContactSoon,
                         style: TextStyle(color: Colors.grey, fontSize: 12),
                       ),
+                      if (showContactAdmin) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final Uri uri = Uri.parse('tel:+919842421250');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade800,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.phone),
+                            label: const Text(
+                              "Contact Admin (நிர்வாகியை அழைக்கவும்)",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 )

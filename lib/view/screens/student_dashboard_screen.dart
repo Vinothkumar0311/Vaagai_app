@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:vaagai/core/constants/app_strings.dart';
 import '../../core/utils/drive_utils.dart';
@@ -334,6 +335,14 @@ class _CourseCard extends StatelessWidget {
     final isPending = accessRecord?.paymentStatus == PaymentStatus.pending;
     final isLocked = !hasAccess;
 
+    bool showContactAdmin = false;
+    if (isPending && accessRecord != null) {
+      final diff = DateTime.now().difference(accessRecord!.createdAt);
+      if (diff.inHours >= 48) {
+        showContactAdmin = true;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
@@ -449,6 +458,22 @@ class _CourseCard extends StatelessWidget {
                         color: Colors.grey.shade600, fontSize: 13, height: 1.4),
                   ),
                   const SizedBox(height: 16),
+                  if (isPending && accessRecord != null) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 14, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Requested on: ${accessRecord!.createdAt.day.toString().padLeft(2, '0')}/${accessRecord!.createdAt.month.toString().padLeft(2, '0')}/${accessRecord!.createdAt.year}",
+                          style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   if (hasAccess && progress != null) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -482,7 +507,7 @@ class _CourseCard extends StatelessWidget {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         if (hasAccess) {
                           Navigator.push(
                             context,
@@ -494,12 +519,19 @@ class _CourseCard extends StatelessWidget {
                                     )),
                           );
                         } else if (isPending) {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    PaymentRegistrationScreen(doc: doc)),
-                          );
+                          if (showContactAdmin) {
+                            final Uri uri = Uri.parse('tel:+919842421250');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri);
+                            }
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      PaymentRegistrationScreen(doc: doc)),
+                            );
+                          }
                         } else {
                           // Toggle Cart or Go to Details
                           if (inCart) {
@@ -517,7 +549,9 @@ class _CourseCard extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
-                            isPending ? Colors.orange.shade700 : primaryGreen,
+                            isPending
+                                ? (showContactAdmin ? Colors.red.shade800 : Colors.orange.shade700)
+                                : primaryGreen,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -530,7 +564,7 @@ class _CourseCard extends StatelessWidget {
                             hasAccess
                                 ? Icons.play_arrow_rounded
                                 : isPending
-                                    ? Icons.hourglass_top_rounded
+                                    ? (showContactAdmin ? Icons.phone : Icons.hourglass_top_rounded)
                                     : inCart ? Icons.shopping_cart_checkout : Icons.add_shopping_cart_rounded,
                             size: 18,
                           ),
@@ -542,7 +576,9 @@ class _CourseCard extends StatelessWidget {
                                     ? "Continue Watching"
                                     : AppStrings.accessMaterial)
                                 : isPending
-                                    ? AppStrings.approvalPending
+                                    ? (showContactAdmin
+                                        ? "Contact Admin (நிர்வாகியை அழைக்கவும்)"
+                                        : AppStrings.approvalPending)
                                     : inCart ? AppStrings.goToCart : AppStrings.addToCart,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,

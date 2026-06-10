@@ -212,9 +212,17 @@ class _PaymentCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 _infoRow(
                   Icons.calendar_today_rounded,
-                  'தேதி',
+                  'பதிவு தேதி (Registered Date)',
                   _formatDate(record.createdAt),
                 ),
+                if (record.paymentDate != null && record.paymentDate!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _infoRow(
+                    Icons.calendar_month_rounded,
+                    'கட்டண தேதி (Payment Date)',
+                    record.paymentDate!,
+                  ),
+                ],
                 if (record.submittedPaymentRef != null && record.submittedPaymentRef!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _infoRow(Icons.tag_rounded, 'Ref ID', record.submittedPaymentRef!),

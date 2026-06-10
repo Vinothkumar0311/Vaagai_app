@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/payment_provider.dart';
@@ -267,6 +268,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _showProofSheet(BuildContext context, String paymentId) async {
     final refCtrl = TextEditingController();
+    DateTime selectedDate = DateTime.now();
 
     await showModalBottomSheet(
       context: context,
@@ -298,6 +300,33 @@ class _CartScreenState extends State<CartScreen> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now().add(const Duration(days: 1)),
+                    );
+                    if (picked != null) {
+                      setSheetState(() {
+                        selectedDate = picked;
+                      });
+                    }
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: "கட்டண தேதி (Payment Date)",
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Text(
+                      DateFormat('yyyy-MM-dd').format(selectedDate),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
 
                 const SizedBox(height: 12),
                 SizedBox(
@@ -320,10 +349,12 @@ class _CartScreenState extends State<CartScreen> {
                               context,
                               listen: false,
                             );
+                            final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
                             final error = await provider.submitManualProof(
                               paymentId: paymentId,
                               screenshotUrl: "",
                               paymentReferenceId: ref,
+                              paymentDate: formattedDate,
                             );
                             if (!mounted) return;
                             setSheetState(() => _isSubmittingProof = false);

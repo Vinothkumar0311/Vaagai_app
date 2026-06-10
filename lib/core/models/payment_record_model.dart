@@ -48,6 +48,7 @@ class PaymentRecordModel {
   final String? verifiedBy;
   final DateTime? verifiedAt;
   final String? rejectionReason;
+  final String? paymentDate;
 
   PaymentRecordModel({
     required this.id,
@@ -68,6 +69,7 @@ class PaymentRecordModel {
     this.verifiedBy,
     this.verifiedAt,
     this.rejectionReason,
+    this.paymentDate,
   });
 
   factory PaymentRecordModel.fromFirestore(DocumentSnapshot doc) {
@@ -95,6 +97,7 @@ class PaymentRecordModel {
       verifiedBy: data['verifiedBy'],
       verifiedAt: (data['verifiedAt'] as Timestamp?)?.toDate(),
       rejectionReason: data['rejectionReason'],
+      paymentDate: data['paymentDate'] as String?,
     );
   }
 
