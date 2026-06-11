@@ -6,6 +6,7 @@ import '../../providers/course_access_provider.dart';
 import '../../core/models/course_video_model.dart';
 import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
+import '../widgets/safe_network_image.dart';
 
 /// Admin screen to view and approve/reject staff-uploaded course videos.
 class AdminVideoApprovalScreen extends StatelessWidget {
@@ -168,13 +169,9 @@ class _AdminVideoCard extends StatelessWidget {
                   width: double.infinity,
                   color: Colors.grey.shade100,
                   child: thumbUrl != null
-                      ? Image.network(
-                          thumbUrl,
+                      ? SafeNetworkImage(
+                          imageUrl: thumbUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.play_circle_outline,
-                                size: 48, color: Colors.grey),
-                          ),
                         )
                       : const Center(
                           child: Icon(Icons.play_circle_outline,

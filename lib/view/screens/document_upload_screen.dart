@@ -10,6 +10,7 @@ import 'staff_course_detail_screen.dart';
 import '../../core/models/uploaded_document.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../widgets/safe_network_image.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -162,16 +163,9 @@ class _DocumentCard extends StatelessWidget {
                   width: double.infinity,
                   color: Colors.grey.shade100,
                   child: displayUrl != null
-                      ? Image.network(
-                          displayUrl,
+                      ? SafeNetworkImage(
+                          imageUrl: displayUrl,
                           fit: BoxFit.cover,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return const Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20)));
-                          },
-                          errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.image,
-                                  size: 50, color: Colors.grey)),
                         )
                       : const Center(
                           child:

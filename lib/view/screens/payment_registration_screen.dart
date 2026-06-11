@@ -12,6 +12,7 @@ import '../../core/models/course_access_model.dart';
 import '../widgets/course_widgets.dart';
 import 'youtube_player_screen.dart';
 import 'pdf_viewer_screen.dart';
+import '../widgets/safe_network_image.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../../providers/cart_provider.dart';
 import '../../core/routes/app_routes.dart';
@@ -403,16 +404,10 @@ class _CourseInfoCard extends StatelessWidget {
               width: double.infinity,
               color: Colors.indigo.shade50,
               child: displayUrl != null
-                  ? Image.network(displayUrl,
+                  ? SafeNetworkImage(
+                      imageUrl: displayUrl,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(child: CircularProgressIndicator());
-                      },
-                      errorBuilder: (_, __, ___) => const Center(
-                            child: Icon(Icons.school_rounded,
-                                size: 48, color: Color(0xFF1B5E20)),
-                          ))
+                    )
                   : const Center(
                       child: Icon(Icons.school_rounded,
                           size: 48, color: Color(0xFF1B5E20))),
@@ -562,12 +557,9 @@ class _DemoVideosSection extends StatelessWidget {
                           height: 60,
                           color: Colors.grey.shade100,
                           child: thumbUrl != null
-                              ? Image.network(
-                                  thumbUrl,
+                              ? SafeNetworkImage(
+                                  imageUrl: thumbUrl,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                      Icons.play_circle_fill,
-                                      color: Colors.grey),
                                 )
                               : const Icon(Icons.play_circle_fill,
                                   color: Colors.grey),

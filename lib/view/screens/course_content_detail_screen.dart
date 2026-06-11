@@ -8,6 +8,7 @@ import 'youtube_player_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/progress_provider.dart';
 import '../../core/utils/youtube_utils.dart';
+import '../widgets/safe_network_image.dart';
 
 class CourseContentDetailScreen extends StatelessWidget {
   final UploadedDocument doc;
@@ -182,12 +183,9 @@ class CourseContentDetailScreen extends StatelessWidget {
               width: double.infinity,
               color: Colors.grey.shade100,
               child: displayUrl != null
-                  ? Image.network(
-                      displayUrl,
+                  ? SafeNetworkImage(
+                      imageUrl: displayUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Center(
-                          child: Icon(Icons.school_rounded,
-                              size: 80, color: Colors.grey)),
                     )
                   : const Center(
                       child: Icon(Icons.school_rounded,
@@ -374,14 +372,10 @@ class CourseContentDetailScreen extends StatelessWidget {
                                             height: 60,
                                             color: Colors.grey.shade100,
                                             child: thumbUrl != null
-                                                ? Image.network(thumbUrl,
+                                                ? SafeNetworkImage(
+                                                    imageUrl: thumbUrl,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder: (_, __,
-                                                            ___) =>
-                                                        const Icon(
-                                                            Icons
-                                                                .play_circle_fill,
-                                                            color: Colors.grey))
+                                                  )
                                                 : const Icon(
                                                     Icons.play_circle_fill,
                                                     color: Colors.grey),

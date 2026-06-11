@@ -7,6 +7,7 @@ import '../../providers/cart_provider.dart';
 import '../../providers/payment_provider.dart';
 import '../../core/utils/drive_utils.dart';
 import '../../core/constants/app_strings.dart';
+import '../widgets/safe_network_image.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -416,7 +417,10 @@ class _CartItemCard extends StatelessWidget {
               height: 80,
               color: Colors.grey.shade100,
               child: thumbUrl != null
-                  ? Image.network(thumbUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.school))
+                  ? SafeNetworkImage(
+                      imageUrl: thumbUrl,
+                      fit: BoxFit.cover,
+                    )
                   : const Icon(Icons.school, color: Colors.grey),
             ),
           ),

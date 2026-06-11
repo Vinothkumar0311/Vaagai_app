@@ -4,6 +4,7 @@ import 'package:vaagai/core/models/doubt_model.dart';
 import 'package:vaagai/providers/auth_provider.dart';
 import 'package:vaagai/providers/doubt_provider.dart';
 import 'package:vaagai/core/routes/app_routes.dart';
+import '../widgets/safe_network_image.dart';
 
 class StudentDoubtsScreen extends StatelessWidget {
   const StudentDoubtsScreen({super.key});
@@ -109,10 +110,9 @@ class StudentDoubtsScreen extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: (imageUrl != null && imageUrl.startsWith('http'))
-            ? Image.network(
-                imageUrl,
+            ? SafeNetworkImage(
+                imageUrl: imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => const Icon(Icons.image_not_supported, color: Colors.grey),
               )
             : const Icon(Icons.book, color: Colors.green, size: 24),
       ),

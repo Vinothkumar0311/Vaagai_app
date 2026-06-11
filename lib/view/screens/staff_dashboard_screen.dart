@@ -10,6 +10,7 @@ import '../../core/models/uploaded_document.dart';
 import '../../core/utils/drive_utils.dart';
 import 'staff_course_detail_screen.dart';
 import '../widgets/dialogs.dart';
+import '../widgets/safe_network_image.dart';
 
 class StaffDashboardScreen extends StatefulWidget {
   const StaffDashboardScreen({super.key});
@@ -325,10 +326,9 @@ class _CourseCard extends StatelessWidget {
                 height: double.infinity,
                 color: Colors.grey.shade100,
                 child: thumbUrl != null
-                    ? Image.network(
-                        thumbUrl,
+                    ? SafeNetworkImage(
+                        imageUrl: thumbUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.school_rounded, color: Colors.grey),
                       )
                     : const Icon(Icons.school_rounded, color: Colors.grey),
               ),
