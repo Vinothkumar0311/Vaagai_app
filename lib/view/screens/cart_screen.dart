@@ -248,10 +248,10 @@ class _CartScreenState extends State<CartScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(AppStrings.postPaymentLater),
-          ),
+          // TextButton(
+          //   onPressed: () => Navigator.pop(dialogContext),
+          //   child: const Text(AppStrings.postPaymentLater),
+          // ),
           ElevatedButton(
             onPressed: _isSubmittingProof
                 ? null
@@ -268,8 +268,9 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _showProofSheet(BuildContext context, String paymentId) async {
-    final refCtrl = TextEditingController();
-    DateTime selectedDate = DateTime.now();
+    final dateCtrl = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
 
     await showModalBottomSheet(
       context: context,
@@ -295,49 +296,43 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: refCtrl,
-                  decoration: const InputDecoration(
+                  controller: dateCtrl,
+                  keyboardType: TextInputType.datetime,
+                  decoration: InputDecoration(
                     labelText: AppStrings.proofSheetLabel,
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime.now().add(const Duration(days: 1)),
-                    );
-                    if (picked != null) {
-                      setSheetState(() {
-                        selectedDate = picked;
-                      });
-                    }
-                  },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: "கட்டண தேதி (Payment Date)",
-                      border: OutlineInputBorder(),
-                      suffixIcon: Icon(Icons.calendar_today),
-                    ),
-                    child: Text(
-                      DateFormat('yyyy-MM-dd').format(selectedDate),
-                      style: const TextStyle(fontSize: 16),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.calendar_today),
+                      onPressed: () async {
+                        DateTime initialDate = DateTime.now();
+                        try {
+                          initialDate = DateFormat('yyyy-MM-dd').parse(dateCtrl.text.trim());
+                        } catch (_) {}
+                        
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: initialDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 1)),
+                        );
+                        if (picked != null) {
+                          setSheetState(() {
+                            dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                          });
+                        }
+                      },
                     ),
                   ),
                 ),
-
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isSubmittingProof
                         ? null
                         : () async {
-                            final ref = refCtrl.text.trim();
-                            if (ref.isEmpty) {
+                            final dateText = dateCtrl.text.trim();
+                            if (dateText.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(AppStrings.proofIdRequired),
@@ -350,20 +345,54 @@ class _CartScreenState extends State<CartScreen> {
                               context,
                               listen: false,
                             );
-                            final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
                             final error = await provider.submitManualProof(
                               paymentId: paymentId,
                               screenshotUrl: "",
-                              paymentReferenceId: ref,
-                              paymentDate: formattedDate,
+                              paymentReferenceId: "N/A",
+                              paymentDate: dateText,
                             );
                             if (!mounted) return;
                             setSheetState(() => _isSubmittingProof = false);
                             if (error == null) {
-                              Navigator.pushNamedAndRemoveUntil(context, '/student_dashboard', (r) => false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(AppStrings.proofSubmitted),
+                              Navigator.pop(ctx);
+                              if (!mounted) return;
+                              await showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (dialogCtx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle_outline, color: Colors.green, size: 28),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          "பதிவு செய்யப்பட்டது / Submitted",
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: const Text(
+                                    "சரிபார்ப்பிற்கு பிறகு உங்களது கோரிக்கை அங்கீகரிக்கப்படும். ஏதேனும் தாமதம் ஏற்பட்டால், 36 மணிநேரத்திற்கு பிறகு அழைப்பு விருப்பம் (Call Option) செயல்படுத்தப்படும்.\n\nAfter verification the request will be approved. In case of any delay, the call option will be enabled after 36 hours.",
+                                    style: TextStyle(fontSize: 14, height: 1.5),
+                                  ),
+                                  actions: [
+                                    Center(
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.pop(dialogCtx);
+                                          Navigator.pushNamedAndRemoveUntil(context, '/student_dashboard', (r) => false);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: _primary,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                        child: const Text("OK"),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               );
                             } else {

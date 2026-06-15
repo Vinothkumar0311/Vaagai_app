@@ -65,8 +65,8 @@ class AppStrings {
   static const String adminApprovalFooter = "நிர்வாகி ஒப்புதலுக்கு பிறகு பாடம் திறக்கப்படும்";
   static const String paymentMethodTitle = "கட்டண வழிமுறை";
   static const String step1 = "கீழே கொடுக்கப்பட்டுள்ள இணைப்பை பயன்படுத்தி தாங்கள் Razorpay வழியே கட்டணம் செலுத்தவும்";
-  static const String step2 = "கட்டணம் செலுத்திய பின் Payment ID (Reference ID) ஐ குறித்து வைத்துக் கொள்ளவும்";
-  static const String step3 = "'I HAVE PAID' பட்டனை அழுத்தி Payment ID யை சமர்ப்பிக்கவும்";
+  static const String step2 = "கட்டணம் செலுத்திய பின் நீங்கள் கட்டணம் செலுத்திய தேதியை குறித்து வைத்துக் கொள்ளவும்";
+  static const String step3 = "'I HAVE PAID' பட்டனை அழுத்தி கட்டணத் தேதியைச் சமர்ப்பிக்கவும்";
   static const String step4 = "நிர்வாகி ஒப்புதலுக்கு பிறகு உங்கள் பாடம் உடனடியாக திறக்கப்படும்";
   static const String contactAdminInfo = "கட்டண விவரங்களுக்கு நிர்வாகியை தொடர்பு கொள்ளவும்";
   static const String demoVideosTitle = "மாதிரி வீடியோக்கள் (Demo Videos)";
@@ -78,18 +78,18 @@ class AppStrings {
 
   // Pre-payment Notice
   static const String prePaymentNoticeTitle = "முக்கிய அறிவிப்பு / Important Notice";
-  static const String prePaymentNoticeMsg = "கட்டணம் செலுத்திய பிறகு, தயவுசெய்து Payment ID-ஐ எடுத்துக் கொள்ளவும்.\n\nAfter completing the payment, kindly take the Payment ID.";
+  static const String prePaymentNoticeMsg = "கட்டணம் செலுத்திய பிறகு, தயவுசெய்து நீங்கள் கட்டணம் செலுத்திய தேதியை உள்ளிடவும்.\n\nAfter completing the payment, you need to enter the date when you completed it.";
 
   // Post-payment Dialog
   static const String postPaymentTitle = "கட்டணம் செலுத்தும் முறை தொடங்கியது/Payment Started";
-  static const String postPaymentMsg = "Razorpay-யில் பணம் செலுத்திய பிறகு, சரிபார்ப்பிற்காக 'Payment ID'-ஐ சமர்ப்பிக்கவும். (After payment, submit Reference ID)";
+  static const String postPaymentMsg = "Razorpay-யில் பணம் செலுத்திய பிறகு, சரிபார்ப்பிற்காக கட்டணம் செலுத்திய தேதியை சமர்ப்பிக்கவும். (After payment, enter the date completing the payment)";
   static const String postPaymentLater = "பிறகு (LATER)";
   static const String postPaymentPaid = "நான் பணம் செலுத்திவிட்டேன் (I HAVE PAID)";
 
   // Proof Sheet
   static const String proofSheetTitle = "கட்டண ஆதாரத்தைச் சமர்ப்பிக்கவும் (Payment Proof)";
-  static const String proofSheetLabel = "Razorpay Payment ID / Reference ID";
+  static const String proofSheetLabel = "கட்டண தேதி / Payment Date";
   static const String proofSheetSubmit = "சரிபார்ப்பிற்காக அனுப்பவும் (Submit)";
-  static const String proofIdRequired = "Payment ID தேவை (Required)";
+  static const String proofIdRequired = "கட்டண தேதி தேவை (Required)";
   static const String proofSubmitted = "கட்டண விவரம் சரிபார்ப்பிற்காக அனுப்பப்பட்டது (Submitted for Verification)";
 }
