@@ -180,14 +180,42 @@ class _YouTubePlayerScreenState extends State<YouTubePlayerScreen> {
       final snapshot = await FirebaseFirestore.instance
           .collection('course_videos')
           .where('courseDocId', isEqualTo: widget.courseId)
-          .where('status', isEqualTo: 'approved')
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        final docs = snapshot.docs.toList();
+        final now = DateTime.now();
+        final docs = snapshot.docs.where((d) {
+          final data = d.data();
+          final scheduledAt = (data['scheduledAt'] as Timestamp?)?.toDate();
+          if (scheduledAt != null) {
+            return !scheduledAt.isAfter(now);
+          }
+          final status = data['status'] as String? ?? '';
+          return status == 'published' || status == 'approved' || status != 'rejected';
+        }).toList();
         docs.sort((a, b) {
-          final aTime = (a.data())['createdAt'] as Timestamp?;
-          final bTime = (b.data())['createdAt'] as Timestamp?;
+          final dataA = a.data();
+          final dataB = b.data();
+          final orderA = dataA['orderIndex'] as int?;
+          final orderB = dataB['orderIndex'] as int?;
+          if (orderA != null && orderB != null) {
+            return orderA.compareTo(orderB);
+          }
+          if (orderA != null) return -1;
+          if (orderB != null) return 1;
+
+          final titleA = dataA['title'] as String? ?? '';
+          final titleB = dataB['title'] as String? ?? '';
+          final numA = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(titleA)?.group(1) ?? '');
+          final numB = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(titleB)?.group(1) ?? '');
+          if (numA != null && numB != null && numA != numB) {
+            return numA.compareTo(numB);
+          }
+          if (numA != null && numB == null) return -1;
+          if (numA == null && numB != null) return 1;
+
+          final aTime = dataA['createdAt'] as Timestamp?;
+          final bTime = dataB['createdAt'] as Timestamp?;
           return (aTime ?? Timestamp(0, 0)).compareTo(bTime ?? Timestamp(0, 0));
         });
 

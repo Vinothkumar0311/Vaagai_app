@@ -518,7 +518,26 @@ class _DemoVideosSection extends StatelessWidget {
 
             final videos = snapshot.data!.docs
                 .map((d) => CourseVideoModel.fromFirestore(d))
+                .where((v) => v.isReleased)
                 .toList();
+
+            videos.sort((a, b) {
+              if (a.orderIndex != null && b.orderIndex != null) {
+                return a.orderIndex!.compareTo(b.orderIndex!);
+              }
+              if (a.orderIndex != null) return -1;
+              if (b.orderIndex != null) return 1;
+
+              final numA = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(a.title)?.group(1) ?? '');
+              final numB = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(b.title)?.group(1) ?? '');
+              if (numA != null && numB != null && numA != numB) {
+                return numA.compareTo(numB);
+              }
+              if (numA != null && numB == null) return -1;
+              if (numA == null && numB != null) return 1;
+
+              return a.createdAt.compareTo(b.createdAt);
+            });
 
             return ListView.builder(
               shrinkWrap: true,

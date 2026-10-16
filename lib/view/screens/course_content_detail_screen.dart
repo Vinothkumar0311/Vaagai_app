@@ -245,7 +245,6 @@ class CourseContentDetailScreen extends StatelessWidget {
                         stream: FirebaseFirestore.instance
                             .collection('course_videos')
                             .where('courseDocId', isEqualTo: doc.id)
-                            .where('status', isEqualTo: 'approved')
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
@@ -271,15 +270,57 @@ class CourseContentDetailScreen extends StatelessWidget {
                             );
                           }
 
-                          // Sort in-memory (chronological: oldest first = 1, 2, 3...)
-                          final docs = snapshot.data!.docs.toList();
+                          // Filter: only show videos that have been released (scheduled date & time reached)
+                          final now = DateTime.now();
+                          final docs = snapshot.data!.docs.where((d) {
+                            final data = d.data() as Map<String, dynamic>;
+                            final scheduledAt = (data['scheduledAt'] as Timestamp?)?.toDate();
+                            if (scheduledAt != null) {
+                              return !scheduledAt.isAfter(now);
+                            }
+                            final status = data['status'] as String? ?? '';
+                            return status == 'published' || status == 'approved' || status != 'rejected';
+                          }).toList();
+
+                          if (docs.isEmpty) {
+                            return Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(16)),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.grey),
+                                  SizedBox(width: 12),
+                                  Text("வீடியோக்கள் இன்னும் வெளியிடப்படவில்லை",
+                                      style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
+                            );
+                          }
                           docs.sort((a, b) {
-                            final aTime =
-                                (a.data() as Map<String, dynamic>)['createdAt']
-                                    as Timestamp?;
-                            final bTime =
-                                (b.data() as Map<String, dynamic>)['createdAt']
-                                    as Timestamp?;
+                            final aData = a.data() as Map<String, dynamic>;
+                            final bData = b.data() as Map<String, dynamic>;
+                            final orderA = aData['orderIndex'] as int?;
+                            final orderB = bData['orderIndex'] as int?;
+                            if (orderA != null && orderB != null) {
+                              return orderA.compareTo(orderB);
+                            }
+                            if (orderA != null) return -1;
+                            if (orderB != null) return 1;
+
+                            final titleA = aData['title'] as String? ?? '';
+                            final titleB = bData['title'] as String? ?? '';
+                            final numA = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(titleA)?.group(1) ?? '');
+                            final numB = int.tryParse(RegExp(r'^\s*(\d+)').firstMatch(titleB)?.group(1) ?? '');
+                            if (numA != null && numB != null && numA != numB) {
+                              return numA.compareTo(numB);
+                            }
+                            if (numA != null && numB == null) return -1;
+                            if (numA == null && numB != null) return 1;
+
+                            final aTime = aData['createdAt'] as Timestamp?;
+                            final bTime = bData['createdAt'] as Timestamp?;
                             return (aTime ?? Timestamp(0, 0))
                                 .compareTo(bTime ?? Timestamp(0, 0));
                           });

@@ -22,7 +22,7 @@ class AdminVideoApprovalScreen extends StatelessWidget {
         backgroundColor: const Color(0xFFF5F5F5),
         appBar: AppBar(
           title: const Text(
-            'வீடியோ ஒப்புதல்',
+            'பாட வீடியோக்கள் (Course Videos)',
             style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: _primary,
@@ -39,17 +39,17 @@ class AdminVideoApprovalScreen extends StatelessWidget {
             labelStyle:
                 const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
             tabs: const [
-              Tab(text: 'PENDING'),
-              Tab(text: 'APPROVED'),
-              Tab(text: 'REJECTED'),
+              Tab(text: 'SCHEDULED'),
+              Tab(text: 'PUBLISHED'),
+              Tab(text: 'ALL'),
             ],
           ),
         ),
-        body: TabBarView(
+        body: const TabBarView(
           children: [
-            _VideoList(statusFilter: 'pending'),
-            _VideoList(statusFilter: 'approved'),
-            _VideoList(statusFilter: 'rejected'),
+            _VideoList(statusFilter: 'scheduled'),
+            _VideoList(statusFilter: 'published'),
+            _VideoList(statusFilter: 'all'),
           ],
         ),
       ),
@@ -70,7 +70,6 @@ class _VideoList extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('course_videos')
-          .where('status', isEqualTo: statusFilter)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -92,9 +91,22 @@ class _VideoList extends StatelessWidget {
           return _buildEmpty(statusFilter);
         }
 
-        final videos = snapshot.data!.docs
+        final allVideos = snapshot.data!.docs
             .map((d) => CourseVideoModel.fromFirestore(d))
             .toList();
+
+        List<CourseVideoModel> videos;
+        if (statusFilter == 'scheduled') {
+          videos = allVideos.where((v) => !v.isReleased).toList();
+        } else if (statusFilter == 'published') {
+          videos = allVideos.where((v) => v.isReleased).toList();
+        } else {
+          videos = allVideos;
+        }
+
+        if (videos.isEmpty) {
+          return _buildEmpty(statusFilter);
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -107,9 +119,9 @@ class _VideoList extends StatelessWidget {
 
   Widget _buildEmpty(String status) {
     final labels = {
-      'pending': 'நிலுவையில் வீடியோக்கள் இல்லை',
-      'approved': 'ஒப்புதல் பெற்ற வீடியோக்கள் இல்லை',
-      'rejected': 'நிராகரிக்கப்பட்ட வீடியோக்கள் இல்லை',
+      'scheduled': 'திட்டமிடப்பட்ட வீடியோக்கள் எதுவும் இல்லை',
+      'published': 'வெளியிடப்பட்ட வீடியோக்கள் எதுவும் இல்லை',
+      'all': 'வீடியோக்கள் எதுவும் இல்லை',
     };
     return Center(
       child: Column(
@@ -309,7 +321,7 @@ class _AdminVideoCard extends StatelessWidget {
                 ],
 
                 // Action buttons 
-                if (isPending) ...[
+                if (!video.isReleased) ...[
                   const SizedBox(height: 14),
                   const Divider(height: 1),
                   const SizedBox(height: 14),
@@ -317,37 +329,37 @@ class _AdminVideoCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _actionBtn(
-                          label: 'நிராகரி',
-                          icon: Icons.close_rounded,
+                          label: 'நீக்கு',
+                          icon: Icons.delete_outline_rounded,
                           color: Colors.red.shade600,
                           filled: false,
-                          onTap: () => _handleReject(context),
+                          onTap: () => _handleDelete(context),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _actionBtn(
-                          label: 'ஒப்புதல்',
-                          icon: Icons.check_rounded,
+                          label: 'இப்போதே வெளியிடு',
+                          icon: Icons.send_rounded,
                           color: _primary,
                           filled: true,
-                          onTap: () => _handleApprove(context),
+                          onTap: () => _handlePublishNow(context),
                         ),
                       ),
                     ],
                   ),
-                ] else if (video.status == VideoStatus.rejected) ...[
+                ] else ...[
                   const SizedBox(height: 14),
                   const Divider(height: 1),
                   const SizedBox(height: 14),
                   SizedBox(
                     width: double.infinity,
                     child: _actionBtn(
-                      label: 'மீண்டும் பரிசீலிக்க (Reset)',
-                      icon: Icons.refresh_rounded,
-                      color: Colors.orange.shade800,
+                      label: 'வீடியோவை நீக்கு (Delete Video)',
+                      icon: Icons.delete_outline_rounded,
+                      color: Colors.red.shade600,
                       filled: false,
-                      onTap: () => _handleReset(context),
+                      onTap: () => _handleDelete(context),
                     ),
                   ),
                 ],
@@ -392,27 +404,34 @@ class _AdminVideoCard extends StatelessWidget {
     );
   }
 
-  Future<void> _handleApprove(BuildContext context) async {
-    final result = await showDialog<String>(
+  Future<void> _handlePublishNow(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => const ConfirmActionDialog(
-        title: 'வீடியோ ஒப்புதல்',
-        subtitle: 'இந்த வீடியோவை ஒப்புக்கொண்டு மாணவர்களுக்கு காண்பிக்கவுமா?',
-        confirmLabel: 'ஒப்புதல்',
-        confirmColor: Color(0xFF1B5E20),
+      builder: (_) => AlertDialog(
+        title: const Text('வீடியோவை உடனடியாக வெளியிடவா?',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text(
+            'இந்த வீடியோவை திட்டமிடப்பட்ட நேரத்திற்கு முன்னதாகவே மாணவர்களுக்கு வெளியிட விரும்புகிறீர்களா?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('இல்லை', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('ஆம், வெளியிடு'),
+          ),
+        ],
       ),
     );
-    if (result == null || !context.mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
-    final admin =
-        Provider.of<AuthProvider>(context, listen: false).userModel;
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
-
-    final error = await provider.approveVideo(
-      videoId: video.id,
-      adminId: admin?.uid ?? 'admin',
-    );
+    final provider = Provider.of<CourseAccessProvider>(context, listen: false);
+    final error = await provider.publishVideoNow(video.id);
 
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -421,7 +440,7 @@ class _AdminVideoCard extends StatelessWidget {
             error == null ? const Color(0xFF1B5E20) : Colors.red.shade700,
         content: Text(
           error == null
-              ? '✅ வீடியோ ஒப்புக்கொள்ளப்பட்டது! மாணவர்களுக்கு தெரியும்.'
+              ? '✅ வீடியோ உடனடியாக வெளியிடப்பட்டது! மாணவர்களுக்கு கிடைக்கிறது.'
               : '❌ $error',
           style: const TextStyle(color: Colors.white),
         ),
@@ -429,79 +448,48 @@ class _AdminVideoCard extends StatelessWidget {
     );
   }
 
-  Future<void> _handleReject(BuildContext context) async {
-    final reason = await showDialog<String>(
+  Future<void> _handleDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => const ConfirmActionDialog(
-        title: 'வீடியோ நிராகரிப்பு',
-        subtitle: 'இந்த வீடியோவை நிராகரிக்கவுமா?',
-        showReasonField: true,
-        confirmLabel: 'நிராகரி',
-        confirmColor: Colors.red,
+      builder: (_) => AlertDialog(
+        title: const Text('வீடியோவை நீக்கவா?',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('"${video.title}" வீடியோவை நிச்சயமாக நீக்க விரும்புகிறீர்களா?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('இல்லை', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('நீக்கு'),
+          ),
+        ],
       ),
     );
-    if (reason == null || !context.mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
-    final admin =
-        Provider.of<AuthProvider>(context, listen: false).userModel;
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
-
-    final error = await provider.rejectVideo(
-      videoId: video.id,
-      adminId: admin?.uid ?? 'admin',
-      reason: reason == 'confirmed' ? null : reason,
-    );
-
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor:
-            error == null ? Colors.orange.shade700 : Colors.red.shade700,
-        content: Text(
-          error == null ? '❌ வீடியோ நிராகரிக்கப்பட்டது' : '❌ $error',
-          style: const TextStyle(color: Colors.white),
+    try {
+      await FirebaseFirestore.instance.collection('course_videos').doc(video.id).delete();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF1B5E20),
+          content: Text('✅ வீடியோ நீக்கப்பட்டது'),
         ),
-      ),
-    );
-  }
-
-  Future<void> _handleReset(BuildContext context) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (_) => const ConfirmActionDialog(
-        title: 'வீடியோ மறுபரிசீலனை',
-        subtitle: 'இந்த வீடியோவை மீண்டும் நிலுவையில் (Pending) மாற்ற வேண்டுமா?',
-        confirmLabel: 'ஆம், மாற்று',
-        confirmColor: Colors.orange,
-      ),
-    );
-    if (result == null || !context.mounted) return;
-
-    final admin =
-        Provider.of<AuthProvider>(context, listen: false).userModel;
-    final provider =
-        Provider.of<CourseAccessProvider>(context, listen: false);
-
-    final error = await provider.resetVideo(
-      videoId: video.id,
-      adminId: admin?.uid ?? 'admin',
-    );
-
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor:
-            error == null ? Colors.blue.shade700 : Colors.red.shade700,
-        content: Text(
-          error == null ? '🔄 வீடியோ நிலுவையில் மாற்றப்பட்டது' : '❌ $error',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: Colors.red, content: Text('Error: $e')),
+      );
+    }
   }
 
   String _formatDate(DateTime dt) =>
       '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-
 }

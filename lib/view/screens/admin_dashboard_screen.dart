@@ -83,14 +83,13 @@ class AdminDashboardScreen extends StatelessWidget {
                       child: StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('course_videos')
-                            .where('status', isEqualTo: 'pending')
                             .snapshots(),
                         builder: (context, snapshot) {
                           final count = snapshot.data?.docs.length ?? 0;
                           return _AdminActionCard(
                             icon: Icons.video_collection_rounded,
-                            title: 'வீடியோ ஒப்பதல்கள்',
-                            subtitle: count > 10 ? '10+ videos' : '$count videos',
+                            title: 'பாட வீடியோக்கள்',
+                            subtitle: '$count videos',
                             color: Colors.indigo.shade800,
                             onTap: () => Navigator.push(
                               context,

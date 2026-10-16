@@ -46,11 +46,18 @@ class StatusChip extends StatelessWidget {
 
   factory StatusChip.fromVideoStatus(VideoStatus status) {
     switch (status) {
+      case VideoStatus.published:
       case VideoStatus.approved:
         return StatusChip(
-          label: 'Approved',
+          label: 'Published',
           color: const Color(0xFF2E7D32),
           icon: Icons.check_circle_rounded,
+        );
+      case VideoStatus.scheduled:
+        return StatusChip(
+          label: 'Scheduled',
+          color: Colors.blue.shade700,
+          icon: Icons.schedule_rounded,
         );
       case VideoStatus.rejected:
         return StatusChip(
@@ -60,7 +67,7 @@ class StatusChip extends StatelessWidget {
         );
       case VideoStatus.pending:
         return StatusChip(
-          label: 'Pending Review',
+          label: 'Pending',
           color: Colors.orange.shade700,
           icon: Icons.pending_rounded,
         );

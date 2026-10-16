@@ -210,6 +210,8 @@ class CourseAccessProvider with ChangeNotifier {
     required String title,
     required String youtubeUrl,
     bool isDemo = false,
+    int? orderIndex,
+    DateTime? scheduledAt,
   }) async {
     _setLoading(true);
     try {
@@ -229,24 +231,43 @@ class CourseAccessProvider with ChangeNotifier {
         return 'இந்த வீடியோ ஏற்கனவே சேர்க்கப்பட்டுள்ளது';
       }
 
-      // ── Weekly limit check ───────────────────────────────
-      final weekCount = await getWeeklyUploadCount(courseDocId, staffId);
-      if (weekCount >= 4) {
-        return 'இந்த வாரம் 4 வீடியோக்கள் பதிவேற்றம் முடிந்தது. அடுத்த வாரம் மீண்டும் முயலவும்.';
+      // ── Determine orderIndex and formatted S.No ───────────
+      final existingDocs = (await _db
+          .collection('course_videos')
+          .where('courseDocId', isEqualTo: courseDocId)
+          .get())
+          .docs;
+      final assignedOrderIndex = orderIndex ?? existingDocs.length;
+
+      String formattedTitle = title.trim();
+      final numMatch = RegExp(r'^\s*(\d+)[\.\s\-\)]+\s*(.*)$').firstMatch(formattedTitle);
+      if (numMatch != null) {
+        final numVal = int.tryParse(numMatch.group(1)!) ?? (assignedOrderIndex + 1);
+        final rest = numMatch.group(2) ?? '';
+        formattedTitle = '${numVal.toString().padLeft(2, '0')}. $rest';
+      } else {
+        formattedTitle = '${(assignedOrderIndex + 1).toString().padLeft(2, '0')}. $formattedTitle';
       }
 
-      // ── Save video ───────────────────────────────────────
+      final now = DateTime.now();
+      final effectiveSchedule = scheduledAt ?? now;
+      final isScheduled = effectiveSchedule.isAfter(now);
+      final videoStatus = isScheduled ? VideoStatus.scheduled : VideoStatus.published;
+
+      // ── Save video directly (schedule-based release) ───────
       final video = CourseVideoModel(
         id: '',
         courseId: courseTitle, // stored as courseTitle for display
         courseDocId: courseDocId,
-        title: title.trim(),
+        title: formattedTitle,
         youtubeUrl: youtubeUrl.trim(),
         uploadedBy: staffId,
         uploadedByName: staffName,
-        status: VideoStatus.pending,
-        createdAt: DateTime.now(),
+        status: videoStatus,
+        createdAt: now,
+        scheduledAt: effectiveSchedule,
         isDemo: isDemo,
+        orderIndex: assignedOrderIndex,
       );
 
       await _db.collection('course_videos').add(video.toMap());
@@ -255,6 +276,60 @@ class CourseAccessProvider with ChangeNotifier {
       return e.toString();
     } finally {
       _setLoading(false);
+    }
+  }
+
+  /// Update the scheduled release date & time for a video
+  Future<String?> updateVideoSchedule({
+    required String videoId,
+    required DateTime scheduledAt,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final isScheduled = scheduledAt.isAfter(now);
+      await _db.collection('course_videos').doc(videoId).update({
+        'scheduledAt': Timestamp.fromDate(scheduledAt),
+        'status': isScheduled ? VideoStatus.scheduled.name : VideoStatus.published.name,
+      });
+      return null;
+    } catch (e) {
+      debugPrint("Error updating video schedule: $e");
+      return e.toString();
+    }
+  }
+
+  /// Immediately publish a scheduled video
+  Future<String?> publishVideoNow(String videoId) async {
+    try {
+      final now = DateTime.now();
+      await _db.collection('course_videos').doc(videoId).update({
+        'scheduledAt': Timestamp.fromDate(now),
+        'status': VideoStatus.published.name,
+      });
+      return null;
+    } catch (e) {
+      debugPrint("Error publishing video: $e");
+      return e.toString();
+    }
+  }
+
+  /// Updates the orderIndex and title S.No for a list of course videos atomically
+  Future<String?> reorderCourseVideos(List<CourseVideoModel> reorderedVideos) async {
+    try {
+      final batch = _db.batch();
+      for (int i = 0; i < reorderedVideos.length; i++) {
+        final video = reorderedVideos[i];
+        final ref = _db.collection('course_videos').doc(video.id);
+        batch.update(ref, {
+          'orderIndex': i,
+          'title': video.title,
+        });
+      }
+      await batch.commit();
+      return null;
+    } catch (e) {
+      debugPrint("Error reordering course videos: $e");
+      return e.toString();
     }
   }
 
